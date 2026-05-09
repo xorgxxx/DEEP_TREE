@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>شجرة تفاعلية ثلاثية الأبعاد</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', 'Cairo', sans-serif;
+        }
+        #info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            background: rgba(0,0,0,0.6);
+            padding: 8px 16px;
+            border-radius: 8px;
+            pointer-events: none;
+            z-index: 10;
+            backdrop-filter: blur(5px);
+            font-size: 14px;
+            direction: rtl;
+        }
+        #controls-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(8px);
+            border-radius: 16px;
+            padding: 12px 20px;
+            color: white;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            z-index: 20;
+            pointer-events: auto;
+            font-size: 14px;
+            direction: rtl;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        button {
+            background: #2c7a47;
+            border: none;
+            color: white;
+            padding: 8px 18px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-weight: bold;
+            font-family: inherit;
+            transition: transform 0.2s, background 0.2s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        button:hover {
+            background: #3e9a5c;
+            transform: scale(1.02);
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        .status {
+            background: #1e2a1f;
+            padding: 6px 14px;
+            border-radius: 40px;
+            font-size: 13px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        @media (max-width: 600px) {
+            button { padding: 6px 12px; font-size: 12px; }
+            .status { font-size: 11px; }
+            #controls-panel { gap: 8px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="info">
+        🌳 الشجرة التفاعلية | اسحب لتغيير الزاوية | زر الفأرة لتحريك الكاميرا
+    </div>
+    <div id="controls-panel">
+        <button id="moreLeavesBtn">🍃 أضف أوراقًا</button>
+        <button id="resetViewBtn">🔄 إعادة تعيين المنظر</button>
+        <button id="toggleWindBtn">💨 تشغيل/إيقاف الرياح</button>
+        <div class="status" id="windStatus">🌬️ الرياح: نشطة</div>
+    </div>
+
+    <!-- استيراد المكتبات من CDN -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+        // --- الإعدادات الأساسية ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a1030);
+        scene.fog = new THREE.FogExp2(0x0a1030, 0.008); // ضباب خفيف
+
+        // الكاميرا
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(5, 4, 7);
+        camera.lookAt(0, 2, 0);
+
+        // الـ Renderers
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true; // تفعيل الظلال
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.body.appendChild(renderer.domElement);
+
+        const labelRenderer = new CSS2DRenderer();
+        labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        labelRenderer.domElement.style.position = 'absolute';
+        labelRenderer.domElement.style.top = '0px';
+        labelRenderer.domElement.style.left = '0px';
+        labelRenderer.domElement.style.pointerEvents = 'none';
+        document.body.appendChild(labelRenderer.domElement);
+
+        // --- تحكمات الكاميرا (تفاعل بالماوس) ---
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;      // حركة انسيابية
+        controls.dampingFactor = 0.05;
+        controls.autoRotate = false;
+        controls.enableZoom = true;
+        controls.enablePan = true;
+        controls.zoomSpeed = 1.2;
+        controls.target.set(0, 2.2, 0);
+        
+        // --- إضاءة غامرة وجميلة ---
+        // ضوء محيط
+        const ambientLight = new THREE.AmbientLight(0x404060);
+        scene.add(ambientLight);
+        // ضوء اتجاهي رئيسي (شمس)
+        const dirLight = new THREE.DirectionalLight(0xfff5d1, 1.2);
+        dirLight.position.set(5, 10, 3);
+        dirLight.castShadow = true;
+        dirLight.receiveShadow = true;
+        dirLight.shadow.mapSize.width = 1024;
+        dirLight.shadow.mapSize.height = 1024;
+        dirLight.shadow.camera.near = 0.5;
+        dirLight.shadow.camera.far = 15;
+        dirLight.shadow.camera.left = -5;
+        dirLight.shadow.camera.right = 5;
+        dirLight.shadow.camera.top = 5;
+        dirLight.shadow.camera.bottom = -5;
+        scene.add(dirLight);
+        // ضوء خلفي دافئ
+        const backLight = new THREE.PointLight(0xd48c54, 0.5);
+        backLight.position.set(-2, 3, -3);
+        scene.add(backLight);
+        // ضوء ملء من الأسفل
+        const fillLight = new THREE.PointLight(0x88aaff, 0.3);
+        fillLight.position.set(0, 1, 0);
+        scene.add(fillLight);
+        
+        // إضافة نجوم صغيرة في الخلفية (Particle System)
+        const starGeometry = new THREE.BufferGeometry();
+        const starCount = 800;
+        const starPositions = new Float32Array(starCount * 3);
+        for (let i = 0; i < starCount; i++) {
+            starPositions[i*3] = (Math.random() - 0.5) * 200;
+            starPositions[i*3+1] = (Math.random() - 0.5) * 80;
+            starPositions[i*3+2] = (Math.random() - 0.5) * 80 - 40;
+        }
+        starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+        const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.08, transparent: true, opacity: 0.6 });
+        const stars = new THREE.Points(starGeometry, starMaterial);
+        scene.add(stars);
+        
+        // --- الأرض / العشب ---
+        const groundPlane = new THREE.Mesh(
+            new THREE.PlaneGeometry(12, 12),
+            new THREE.MeshStandardMaterial({ color: 0x3c9e3a, roughness: 0.9, metalness: 0.1, side: THREE.DoubleSide })
+        );
+        groundPlane.rotation.x = -Math.PI / 2;
+        groundPlane.position.y = -0.2;
+        groundPlane.receiveShadow = true;
+        scene.add(groundPlane);
+        
+        // عشب صغير (حشائش) بطريقة بسيطة: دوائر صغيرة
+        const grassMat = new THREE.MeshStandardMaterial({ color: 0x5cbf4a });
+        for (let i = 0; i < 300; i++) {
+            const blade = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.08, 0.1 + Math.random()*0.2, 3), grassMat);
+            const angle = Math.random() * Math.PI * 2;
+            const rad = 2 + Math.random() * 5;
+            const x = Math.cos(angle) * rad;
+            const z = Math.sin(angle) * rad;
+            blade.position.set(x, -0.15, z);
+            blade.castShadow = true;
+            blade.receiveShadow = false;
+            scene.add(blade);
+        }
+        
+        // --- بناء الشجرة (جذع + فروع + أوراق) ---
+        const treeGroup = new THREE.Group();
+        
+        // الجذع الرئيسي
+        const trunkMat = new THREE.MeshStandardMaterial({ color: 0x8B5A2B, roughness: 0.7, metalness: 0.1 });
+        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.8, 1.8, 8), trunkMat);
+        trunk.position.y = 0.7;
+        trunk.castShadow = true;
+        trunk.receiveShadow = true;
+        treeGroup.add(trunk);
+        
+        // الفروع السفلية (3 فروع)
+        const branchMat = new THREE.MeshStandardMaterial({ color: 0x9b6e3e, roughness: 0.6 });
+        const branches = [
+            { pos: [0.6, 1.2, 0.3], rot: [0, 0.4, 0.5], scale: [0.35, 0.9, 0.35] },
+            { pos: [-0.5, 1.3, -0.4], rot: [0, -0.3, 0.4], scale: [0.38, 0.85, 0.38] },
+            { pos: [0.2, 1.5, 0.7], rot: [0.2, 0.5, 0.3], scale: [0.3, 0.7, 0.3] },
+            { pos: [-0.3, 1.6, -0.6], rot: [-0.1, -0.6, 0.4], scale: [0.32, 0.75, 0.32] },
+            { pos: [0.5, 1.9, -0.2], rot: [0.1, 0.7, 0.2], scale: [0.28, 0.65, 0.28] }
+        ];
+        branches.forEach(b => {
+            const branch = new THREE.Mesh(new THREE.CylinderGeometry(b.scale[0], b.scale[2], b.scale[1], 5), branchMat);
+            branch.position.set(b.pos[0], b.pos[1], b.pos[2]);
+            branch.rotation.set(b.rot[0], b.rot[1], b.rot[2]);
+            branch.castShadow = true;
+            treeGroup.add(branch);
+        });
+        
+        // مجموعة الأوراق (سنضيف عدة كرات خضراء)
+        const leafMat = new THREE.MeshStandardMaterial({ color: 0x5aae3a, roughness: 0.4, emissive: 0x226622, emissiveIntensity: 0.12 });
+        const leafMatLight = new THREE.MeshStandardMaterial({ color: 0x7ccf5a, roughness: 0.3 });
+        
+        const leafPositions = [
+            [0, 2.0, 0], [0.5, 2.2, 0.3], [-0.4, 2.3, -0.4], [0.3, 2.5, 0.5], [-0.2, 2.6, -0.2],
+            [0.7, 2.0, -0.2], [-0.7, 2.1, 0.1], [0.2, 2.9, 0.1], [-0.1, 3.0, 0.3], [0.4, 2.7, -0.3],
+            [0.0, 3.2, 0.0], [0.3, 1.8, 0.7], [-0.3, 1.9, -0.8]
+        ];
+        const leafSpheres = [];
+        leafPositions.forEach(pos => {
+            const size = 0.42 + Math.random() * 0.2;
+            const sphere = new THREE.Mesh(new THREE.SphereGeometry(size, 12, 12), Math.random() > 0.6 ? leafMatLight : leafMat);
+            sphere.position.set(pos[0], pos[1], pos[2]);
+            sphere.castShadow = true;
+            sphere.receiveShadow = false;
+            treeGroup.add(sphere);
+            leafSpheres.push(sphere);
+        });
+        
+        // إضافة أوراق إضافية صغيرة (أشبه بالزغب)
+        const tinyLeafMat = new THREE.MeshStandardMaterial({ color: 0x8ed46a });
+        for (let i = 0; i < 45; i++) {
+            const tiny = new THREE.Mesh(new THREE.SphereGeometry(0.18, 6, 6), tinyLeafMat);
+            const angleRad = Math.random() * Math.PI * 2;
+            const radius = 0.8 + Math.random() * 1.3;
+            const yOff = 1.9 + Math.random() * 1.6;
+            tiny.position.set(Math.cos(angleRad) * radius, yOff, Math.sin(angleRad) * radius);
+            tiny.castShadow = true;
+            treeGroup.add(tiny);
+            leafSpheres.push(tiny);
+        }
+        
+        scene.add(treeGroup);
+        
+        // --- إضافة نص تفاعلي باستخدام CSS2DRenderer (بطاقة تعريف الشجرة) ---
+        const cardDiv = document.createElement('div');
+        cardDiv.textContent = '🌳 شجرة الحياة 🌳';
+        cardDiv.style.backgroundColor = 'rgba(30,40,20,0.8)';
+        cardDiv.style.color = '#e8f0d5';
+        cardDiv.style.padding = '6px 14px';
+        cardDiv.style.borderRadius = '30px';
+        cardDiv.style.fontSize = '18px';
+        cardDiv.style.fontWeight = 'bold';
+        cardDiv.style.backdropFilter = 'blur(4px)';
+        cardDiv.style.border = '1px solid #aaf0a0';
+        cardDiv.style.fontFamily = 'sans-serif';
+        cardDiv.style.pointerEvents = 'none';
+        const labelObj = new CSS2DObject(cardDiv);
+        labelObj.position.set(0, 3.5, 0);
+        scene.add(labelObj);
+        
+        // --- تأثير الرياح الديناميكي على الفروع والأوراق ---
+        let windActive = true;
+        let time = 0;
+        const originalPositions = leafSpheres.map(sp => sp.position.clone());
+        const originalBranchPos = [];
+        // تخزين الفروع (الأجزاء الخشبية) لتحريكها أيضًا
+        const treeChildren = treeGroup.children;
+        const branchMeshes = treeChildren.filter(c => c.geometry && c.geometry.type === 'CylinderGeometry' && c !== trunk);
+        branchMeshes.forEach(br => originalBranchPos.push(br.position.clone()));
+        
+        // دالة لإعادة تعيين المنظر
+        document.getElementById('resetViewBtn').addEventListener('click', () => {
+            camera.position.set(5, 4, 7);
+            controls.target.set(0, 2.2, 0);
+            controls.update();
+        });
+        
+        // إضافة أوراق إضافية (زر)
+        document.getElementById('moreLeavesBtn').addEventListener('click', () => {
+            const addCount = 12;
+            for (let i = 0; i < addCount; i++) {
+                const newLeaf = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 8), new THREE.MeshStandardMaterial({ color: 0x78c850, emissive: 0x337733, emissiveIntensity: 0.1 }));
+                const angleRad = Math.random() * Math.PI * 2;
+                const radius = 0.9 + Math.random() * 1.5;
+                const yOff = 1.7 + Math.random() * 2.0;
+                newLeaf.position.set(Math.cos(angleRad) * radius, yOff, Math.sin(angleRad) * radius);
+                newLeaf.castShadow = true;
+                treeGroup.add(newLeaf);
+                leafSpheres.push(newLeaf);
+                originalPositions.push(newLeaf.position.clone());
+            }
+            // تحديث المؤثرات البصرية
+            document.getElementById('windStatus').style.backgroundColor = windActive ? '#1e5a2e' : '#3a3a3a';
+        });
+        
+        // تشغيل/إيقاف الرياح
+        const windBtn = document.getElementById('toggleWindBtn');
+        const windStatusDiv = document.getElementById('windStatus');
+        windBtn.addEventListener('click', () => {
+            windActive = !windActive;
+            windStatusDiv.innerHTML = windActive ? '🌬️ الرياح: نشطة' : '🍃 الرياح: ساكنة';
+            windStatusDiv.style.backgroundColor = windActive ? '#1e5a2e' : '#3a3a3a';
+        });
+        
+        // --- أرضية مرجانية وزهور صغيرة ---
+        const flowerMat = new THREE.MeshStandardMaterial({ color: 0xffaa77 });
+        for (let i = 0; i < 80; i++) {
+            const flower = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.12, 6), flowerMat);
+            const ang = Math.random() * Math.PI * 2;
+            const rad = 2.2 + Math.random() * 4.5;
+            const x = Math.cos(ang) * rad;
+            const z = Math.sin(ang) * rad;
+            flower.position.set(x, -0.12, z);
+            flower.castShadow = true;
+            scene.add(flower);
+        }
+        
+        // --- إضافة فراشات متحركة (جمالية) ---
+        const butterflyGroup = new THREE.Group();
+        const butterflyMat = new THREE.MeshStandardMaterial({ color: 0xffaa66, emissive: 0x442200 });
+        const wingL = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.05, 0.25), butterflyMat);
+        const wingR = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.05, 0.25), butterflyMat);
+        wingL.position.set(-0.12, 0, 0);
+        wingR.position.set(0.12, 0, 0);
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.1, 0.22), new THREE.MeshStandardMaterial({ color: 0xcc8844 }));
+        butterflyGroup.add(wingL, wingR, body);
+        butterflyGroup.castShadow = true;
+        butterflyGroup.scale.set(0.7, 0.7, 0.7);
+        scene.add(butterflyGroup);
+        
+        let butterflyAngle = 0;
+        let butterflyYoffset = 0;
+        
+        // --- حلقة الحركة (تحريك الرياح والفراشة والنجوم) ---
+        function animate() {
+            requestAnimationFrame(animate);
+            time += 0.016; // تقريبي
+            
+            // تأثير الرياح على الأوراق والفروع
+            if (windActive) {
+                const intensity = 0.045;
+                const speed = 1.9;
+                leafSpheres.forEach((leaf, idx) => {
+                    if (originalPositions[idx]) {
+                        const offsetX = Math.sin(time * speed + idx) * intensity * 0.7;
+                        const offsetZ = Math.cos(time * speed * 0.9 + idx) * intensity * 0.6;
+                        leaf.position.x = originalPositions[idx].x + offsetX;
+                        leaf.position.z = originalPositions[idx].z + offsetZ;
+                        // تغيير بسيط في الحجم أو اللون؟ لا نبالغ
+                    }
+                });
+                // تحريك الفروع
+                branchMeshes.forEach((branch, idx) => {
+                    if (originalBranchPos[idx]) {
+                        branch.position.x = originalBranchPos[idx].x + Math.sin(time * 2.2 + idx) * 0.008;
+                        branch.position.z = originalBranchPos[idx].z + Math.cos(time * 1.8 + idx) * 0.008;
+                    }
+                });
+                // تحريك الجذع قليلاً جداً
+                trunk.position.x = Math.sin(time * 1.2) * 0.003;
+                trunk.position.z = Math.cos(time * 1.3) * 0.003;
+            } else {
+                // إعادة المواضع إلى الأصل ببطء
+                leafSpheres.forEach((leaf, idx) => {
+                    if (originalPositions[idx]) {
+                        leaf.position.lerp(originalPositions[idx], 0.1);
+                    }
+                });
+                branchMeshes.forEach((branch, idx) => {
+                    if (originalBranchPos[idx]) {
+                        branch.position.lerp(originalBranchPos[idx], 0.1);
+                    }
+                });
+                trunk.position.lerp(new THREE.Vector3(0, 0.7, 0), 0.1);
+            }
+            
+            // تحريك الفراشة بشكل دائري حول الشجرة
+            butterflyAngle += 0.008;
+            butterflyYoffset = Math.sin(time * 1.9) * 0.2;
+            const radiusFly = 1.9;
+            const flyX = Math.cos(butterflyAngle) * radiusFly;
+            const flyZ = Math.sin(butterflyAngle) * radiusFly;
+            butterflyGroup.position.set(flyX, 1.4 + butterflyYoffset, flyZ);
+            // دوران الفراشة لمواجهة اتجاه الحركة تقريبًا
+            butterflyGroup.lookAt(flyX + Math.cos(butterflyAngle) * 0.5, 1.5, flyZ + Math.sin(butterflyAngle) * 0.5);
+            
+            // تدوير النجوم ببطء شديد
+            stars.rotation.y += 0.0005;
+            stars.rotation.x += 0.0003;
+            
+            // تحديث الكاميرا والتحكم
+            controls.update(); // مهم لتحديث OrbitControls
+            
+            // Render
+            renderer.render(scene, camera);
+            labelRenderer.render(scene, camera);
+        }
+        
+        animate();
+        
+        // --- استجابة لتغيير حجم النافذة ---
+        window.addEventListener('resize', onWindowResize, false);
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        // لمسة إضافية: عرض رسالة ترحيب في console
+        console.log('🌳 الشجرة التفاعلية جاهزة | GitHub Pages | اسحب الشاشة بالماوس');
+    </script>
+</body>
+  </html>
