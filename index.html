@@ -3,21 +3,32 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>غابة الثعالب الحمراء - تصميم محسّن</title>
+  <title>غابة الثعالب الحمراء - إصدار محسّن</title>
   <style>
-    body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
     #info {
-      position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.7);
-      color: white; padding: 12px 20px; border-radius: 10px; pointer-events: none;
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 10px;
+      pointer-events: none;
       backdrop-filter: blur(5px);
+      z-index: 10;
     }
   </style>
 </head>
 <body>
   <div id="info">
-    <h2>🦊 ثعلبان في الغابة</h2>
-    <p>ذكر وأنثى بجسم واضح وأطراف مفصلة</p>
-    <p style="font-size:0.8em;opacity:0.8">🖱️ اسحب لتدوير | 🔍 عجلة للتكبير</p>
+    <h2>🦊 ثعلبان محسّنان في الغابة</h2>
+    <p>ذكر وأنثى بأجساد مفصلة وذيول واضحة | حركات متنوعة</p>
+    <p style="font-size:0.8em;opacity:0.8">🖱️ اسحب للدوران | 🔍 عجلة للتكبير</p>
   </div>
 
   <script type="importmap">
@@ -36,16 +47,17 @@
     // ========== المشهد الأساسي ==========
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x87CEEB);
-    scene.fog = new THREE.Fog(0x87CEEB, 30, 120);
+    scene.fog = new THREE.Fog(0x87CEEB, 35, 90);
 
-    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 300);
-    camera.position.set(20, 18, 30);
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 200);
+    camera.position.set(18, 15, 25);
     camera.lookAt(0, 0, 0);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     document.body.appendChild(renderer.domElement);
 
     const controls = new OrbitControls(camera, renderer.domElement);
@@ -53,235 +65,286 @@
     controls.dampingFactor = 0.05;
     controls.target.set(0, 0, 0);
     controls.maxPolarAngle = Math.PI / 2.2;
-    controls.minDistance = 8;
-    controls.maxDistance = 60;
+    controls.minDistance = 6;
+    controls.maxDistance = 50;
     controls.update();
 
     // ========== إضاءة ==========
     const sunLight = new THREE.DirectionalLight(0xfff5e6, 2.5);
-    sunLight.position.set(30, 40, 20);
+    sunLight.position.set(25, 35, 15);
     sunLight.castShadow = true;
     sunLight.shadow.mapSize.width = 2048;
     sunLight.shadow.mapSize.height = 2048;
     sunLight.shadow.camera.near = 1;
-    sunLight.shadow.camera.far = 100;
-    sunLight.shadow.camera.left = -50;
-    sunLight.shadow.camera.right = 50;
-    sunLight.shadow.camera.top = 50;
-    sunLight.shadow.camera.bottom = -50;
+    sunLight.shadow.camera.far = 80;
+    sunLight.shadow.camera.left = -40;
+    sunLight.shadow.camera.right = 40;
+    sunLight.shadow.camera.top = 40;
+    sunLight.shadow.camera.bottom = -40;
+    sunLight.shadow.bias = -0.0005;
+    sunLight.shadow.normalBias = 0.02;
     scene.add(sunLight);
 
-    scene.add(new THREE.AmbientLight(0x404066, 1.2));
-    const fillLight = new THREE.PointLight(0xffccaa, 0.8, 40);
-    fillLight.position.set(-10, 5, 15);
-    scene.add(fillLight);
+    const hemiLight = new THREE.HemisphereLight(0x87CEEB, 0x3d6b37, 0.8);
+    scene.add(hemiLight);
+
+    const ambientLight = new THREE.AmbientLight(0x404066, 0.5);
+    scene.add(ambientLight);
 
     // ========== أرضية الغابة ==========
     const canvas = document.createElement('canvas');
-    canvas.width = 512; canvas.height = 512;
+    canvas.width = 512;
+    canvas.height = 512;
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = '#4a7c3f';
-    ctx.fillRect(0,0,512,512);
-    for(let i=0;i<3000;i++){
-      ctx.fillStyle = `rgb(${60+Math.random()*30},${100+Math.random()*40},${40+Math.random()*30})`;
-      ctx.fillRect(Math.random()*512,Math.random()*512,2,2);
+    ctx.fillRect(0, 0, 512, 512);
+    for (let i = 0; i < 4000; i++) {
+      ctx.fillStyle = `rgb(${55 + Math.random()*35}, ${90 + Math.random()*50}, ${35 + Math.random()*35})`;
+      ctx.fillRect(Math.random()*512, Math.random()*512, 2, 3);
     }
     const groundTexture = new THREE.CanvasTexture(canvas);
     groundTexture.wrapS = THREE.RepeatWrapping;
     groundTexture.wrapT = THREE.RepeatWrapping;
-    groundTexture.repeat.set(15,15);
+    groundTexture.repeat.set(20, 20);
 
     const ground = new THREE.Mesh(
-      new THREE.PlaneGeometry(100,100),
-      new THREE.MeshStandardMaterial({map:groundTexture, roughness:0.9})
+      new THREE.PlaneGeometry(100, 100),
+      new THREE.MeshStandardMaterial({ map: groundTexture, roughness: 0.9, metalness: 0.0 })
     );
-    ground.rotation.x = -Math.PI/2;
+    ground.rotation.x = -Math.PI / 2;
     ground.position.y = -0.1;
     ground.receiveShadow = true;
     scene.add(ground);
 
-    // ========== أشجار ==========
-    function createTree(x,z,scale=1){
-      const group = new THREE.Group();
-      const trunkH = 3.5*scale;
-      const trunk = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.25*scale,0.35*scale,trunkH,8),
-        new THREE.MeshStandardMaterial({color:0x8B5A2B, roughness:0.8})
-      );
-      trunk.position.y = trunkH/2;
-      trunk.castShadow = trunk.receiveShadow = true;
-      group.add(trunk);
-      const colors = [0x2d5a27,0x3d6b37,0x1e4a1b];
-      for(let i=0;i<3;i++){
-        const cone = new THREE.Mesh(
-          new THREE.ConeGeometry(1.2*scale - i*0.25, 1.6*scale, 8),
-          new THREE.MeshStandardMaterial({color:colors[i], roughness:0.7})
-        );
-        cone.position.y = trunkH + i*1.0*scale;
-        cone.castShadow = cone.receiveShadow = true;
-        group.add(cone);
+    // عشب صغير متناثر
+    const grassMat = new THREE.MeshStandardMaterial({ color: 0x5a8f4a, roughness: 0.7 });
+    for (let i = 0; i < 500; i++) {
+      const tuft = new THREE.Group();
+      const x = (Math.random() - 0.5) * 90;
+      const z = (Math.random() - 0.5) * 90;
+      for (let j = 0; j < 5; j++) {
+        const blade = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.3 + Math.random()*0.3, 4), grassMat);
+        blade.position.set((Math.random()-0.5)*0.2, 0.15, (Math.random()-0.5)*0.2);
+        blade.rotation.x = (Math.random()-0.5) * 0.5;
+        blade.rotation.z = (Math.random()-0.5) * 0.5;
+        blade.castShadow = true;
+        blade.receiveShadow = true;
+        tuft.add(blade);
       }
-      group.position.set(x,0,z);
-      return group;
+      tuft.position.set(x, 0, z);
+      scene.add(tuft);
     }
-    for(let i=0;i<80;i++){
-      const angle = Math.random()*Math.PI*2;
-      const radius = 5 + Math.random()*38;
-      const x = Math.cos(angle)*radius;
-      const z = Math.sin(angle)*radius;
-      if(Math.abs(x)<2 && Math.abs(z)<2) continue;
-      scene.add(createTree(x,z,0.8+Math.random()*1.3));
+
+    // ========== أشجار محسّنة ==========
+    function createTree(x, z, scale = 1.0) {
+      const treeGroup = new THREE.Group();
+      const trunkHeight = 3.0 * scale;
+      const trunkRadius = 0.35 * scale;
+      
+      // جذع رئيسي
+      const trunkGeo = new THREE.CylinderGeometry(trunkRadius*0.8, trunkRadius, trunkHeight, 8);
+      const trunkMat = new THREE.MeshStandardMaterial({ color: 0x6b4c3b, roughness: 0.8 });
+      const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+      trunk.position.y = trunkHeight / 2;
+      trunk.castShadow = true;
+      trunk.receiveShadow = true;
+      treeGroup.add(trunk);
+
+      // فروع
+      for (let i = 0; i < 3; i++) {
+        const branchGeo = new THREE.CylinderGeometry(0.1*scale, 0.15*scale, 1.2*scale, 6);
+        const branch = new THREE.Mesh(branchGeo, trunkMat);
+        branch.position.y = trunkHeight * (0.5 + i * 0.2);
+        branch.rotation.z = (Math.random() - 0.5) * 1.5;
+        branch.rotation.x = (Math.random() - 0.5) * 1.0;
+        branch.position.x = Math.cos(i * 2) * 0.4;
+        branch.castShadow = true;
+        branch.receiveShadow = true;
+        treeGroup.add(branch);
+      }
+
+      // أوراق متعددة الطبقات
+      const leafColors = [0x2d5a27, 0x3d6b37, 0x4a7c40, 0x1e4a1b];
+      for (let i = 0; i < 6; i++) {
+        const leafGeo = new THREE.SphereGeometry(0.8 * scale, 7, 7);
+        const leafMat = new THREE.MeshStandardMaterial({ color: leafColors[Math.floor(Math.random()*4)], roughness: 0.6 });
+        const leaf = new THREE.Mesh(leafGeo, leafMat);
+        leaf.position.y = trunkHeight + i * 0.6 * scale;
+        leaf.position.x = (Math.random() - 0.5) * 0.6 * scale;
+        leaf.position.z = (Math.random() - 0.5) * 0.6 * scale;
+        leaf.scale.set(0.8 + Math.random()*0.5, 0.6 + Math.random()*0.4, 0.8 + Math.random()*0.5);
+        leaf.castShadow = true;
+        leaf.receiveShadow = true;
+        treeGroup.add(leaf);
+      }
+
+      treeGroup.position.set(x, 0, z);
+      return treeGroup;
     }
-    // صخور
-    const rockGeo = new THREE.IcosahedronGeometry(0.3,0);
-    const rockMat = new THREE.MeshStandardMaterial({color:0x888888, roughness:0.6});
-    for(let i=0;i<40;i++){
+
+    for (let i = 0; i < 70; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const radius = 6 + Math.random() * 40;
+      const x = Math.cos(angle) * radius;
+      const z = Math.sin(angle) * radius;
+      if (Math.abs(x) < 2 && Math.abs(z) < 2) continue;
+      const scale = 0.8 + Math.random() * 1.5;
+      scene.add(createTree(x, z, scale));
+    }
+
+    // صخور متناثرة
+    const rockGeo = new THREE.IcosahedronGeometry(0.25, 0);
+    const rockMat = new THREE.MeshStandardMaterial({ color: 0x777777, roughness: 0.7 });
+    for (let i = 0; i < 60; i++) {
       const rock = new THREE.Mesh(rockGeo, rockMat);
-      const a = Math.random()*Math.PI*2;
-      const d = 5+Math.random()*35;
-      rock.position.set(Math.cos(a)*d, 0.02, Math.sin(a)*d);
-      rock.scale.setScalar(0.5+Math.random()*1.5);
-      rock.castShadow = rock.receiveShadow = true;
+      const a = Math.random() * Math.PI * 2;
+      const d = 4 + Math.random() * 40;
+      rock.position.set(Math.cos(a) * d, 0.05, Math.sin(a) * d);
+      rock.scale.setScalar(0.4 + Math.random() * 2.0);
+      rock.rotation.set(Math.random()*Math.PI, Math.random()*Math.PI, Math.random()*Math.PI);
+      rock.castShadow = true;
+      rock.receiveShadow = true;
       scene.add(rock);
     }
 
-    // ========== إنشاء الثعلب المحسّن ==========
-    function createFox(gender = 'male') {
+    // ========== إنشاء الثعلب المفصل ==========
+    function createFox(mainColor, bellyColor, gender = 'male') {
       const fox = new THREE.Group();
-      
-      const mainColor = gender === 'male' ? 0xd45d1e : 0xe87a3a;
-      const darkColor = 0x4a1c0d;
+      const darkColor = 0x1a0a00;
       const whiteColor = 0xfff5e6;
-      const earInner = 0xffaa88;
+      const noseColor = 0x111111;
       
-      // === الجسم الرئيسي (صدر + بطن) ===
+      // === الجسم (صدر + بطن) ===
       const bodyGroup = new THREE.Group();
       bodyGroup.position.y = 0.65;
       fox.add(bodyGroup);
       
-      // صدر (القفص الصدري) - أكبر قليلاً
-      const chestGeo = new THREE.SphereGeometry(0.5, 16, 12);
-      const chestMesh = new THREE.Mesh(chestGeo, new THREE.MeshStandardMaterial({color: mainColor, roughness:0.3}));
-      chestMesh.scale.set(0.85, 0.7, 0.65);
-      chestMesh.position.set(0, 0.05, 0.15);
-      chestMesh.castShadow = chestMesh.receiveShadow = true;
-      bodyGroup.add(chestMesh);
+      // الصدر
+      const chestGeo = new THREE.SphereGeometry(0.45, 16, 12);
+      const chest = new THREE.Mesh(chestGeo, new THREE.MeshStandardMaterial({ color: mainColor, roughness: 0.35 }));
+      chest.scale.set(0.9, 0.8, 0.7);
+      chest.position.set(0, 0.1, 0.2);
+      chest.castShadow = chest.receiveShadow = true;
+      bodyGroup.add(chest);
       
-      // بطن (منطقة الحوض) - أصغر ومستدير
-      const bellyGeo = new THREE.SphereGeometry(0.45, 12, 10);
-      const bellyMesh = new THREE.Mesh(bellyGeo, new THREE.MeshStandardMaterial({color: mainColor, roughness:0.3}));
-      bellyMesh.scale.set(0.8, 0.6, 0.6);
-      bellyMesh.position.set(0, -0.15, -0.25);
-      bellyMesh.castShadow = bellyMesh.receiveShadow = true;
-      bodyGroup.add(bellyMesh);
+      // البطن
+      const bellyGeo = new THREE.SphereGeometry(0.4, 12, 10);
+      const belly = new THREE.Mesh(bellyGeo, new THREE.MeshStandardMaterial({ color: mainColor, roughness: 0.35 }));
+      belly.scale.set(0.85, 0.65, 0.65);
+      belly.position.set(0, -0.2, -0.25);
+      belly.castShadow = belly.receiveShadow = true;
+      bodyGroup.add(belly);
       
-      // فرو أبيض على الصدر
-      const whiteChestGeo = new THREE.SphereGeometry(0.35, 12, 8);
-      const whiteChest = new THREE.Mesh(whiteChestGeo, new THREE.MeshStandardMaterial({color: whiteColor, roughness:0.5}));
-      whiteChest.scale.set(0.7, 0.5, 0.4);
-      whiteChest.position.set(0, -0.15, 0.3);
-      whiteChest.castShadow = whiteChest.receiveShadow = true;
-      bodyGroup.add(whiteChest);
+      // فرو الصدر الأبيض
+      const chestFurGeo = new THREE.SphereGeometry(0.35, 10, 8);
+      const chestFur = new THREE.Mesh(chestFurGeo, new THREE.MeshStandardMaterial({ color: whiteColor, roughness: 0.5 }));
+      chestFur.scale.set(0.7, 0.5, 0.5);
+      chestFur.position.set(0, -0.1, 0.35);
+      chestFur.castShadow = chestFur.receiveShadow = true;
+      bodyGroup.add(chestFur);
       
-      // أكتاف ووركين بارزين
-      const shoulderGeo = new THREE.SphereGeometry(0.22, 8, 8);
-      const shoulderMat = new THREE.MeshStandardMaterial({color: mainColor, roughness:0.4});
+      // الأكتاف
+      const shoulderGeo = new THREE.SphereGeometry(0.2, 8, 8);
+      const shoulderMat = new THREE.MeshStandardMaterial({ color: mainColor, roughness: 0.4 });
       const leftShoulder = new THREE.Mesh(shoulderGeo, shoulderMat);
-      leftShoulder.position.set(-0.32, 0.15, 0.25);
-      leftShoulder.castShadow = leftShoulder.receiveShadow = true;
+      leftShoulder.position.set(-0.35, 0.2, 0.25);
       bodyGroup.add(leftShoulder);
       const rightShoulder = new THREE.Mesh(shoulderGeo, shoulderMat);
-      rightShoulder.position.set(0.32, 0.15, 0.25);
-      rightShoulder.castShadow = rightShoulder.receiveShadow = true;
+      rightShoulder.position.set(0.35, 0.2, 0.25);
       bodyGroup.add(rightShoulder);
       
-      const hipGeo = new THREE.SphereGeometry(0.2, 8, 8);
-      const hipMat = new THREE.MeshStandardMaterial({color: mainColor, roughness:0.4});
+      // الأوراك
+      const hipGeo = new THREE.SphereGeometry(0.22, 8, 8);
+      const hipMat = new THREE.MeshStandardMaterial({ color: mainColor, roughness: 0.4 });
       const leftHip = new THREE.Mesh(hipGeo, hipMat);
-      leftHip.position.set(-0.28, -0.1, -0.35);
-      leftHip.castShadow = leftHip.receiveShadow = true;
+      leftHip.position.set(-0.3, -0.15, -0.4);
       bodyGroup.add(leftHip);
       const rightHip = new THREE.Mesh(hipGeo, hipMat);
-      rightHip.position.set(0.28, -0.1, -0.35);
-      rightHip.castShadow = rightHip.receiveShadow = true;
+      rightHip.position.set(0.3, -0.15, -0.4);
       bodyGroup.add(rightHip);
       
       fox.body = bodyGroup;
       
-      // === الرأس المحسّن ===
+      // === الرقبة والرأس ===
       const headGroup = new THREE.Group();
-      headGroup.position.set(0, 1.05, 0.65);
+      headGroup.position.set(0, 1.05, 0.6);
       fox.add(headGroup);
       
-      // جمجمة
-      const skullGeo = new THREE.SphereGeometry(0.4, 16, 12);
-      const skull = new THREE.Mesh(skullGeo, new THREE.MeshStandardMaterial({color: mainColor, roughness:0.3}));
-      skull.scale.set(0.9, 0.8, 0.75);
+      // الرقبة
+      const neckGeo = new THREE.CylinderGeometry(0.18, 0.2, 0.35, 8);
+      const neck = new THREE.Mesh(neckGeo, new THREE.MeshStandardMaterial({ color: mainColor, roughness: 0.4 }));
+      neck.position.set(0, -0.15, 0.15);
+      neck.castShadow = neck.receiveShadow = true;
+      headGroup.add(neck);
+      
+      // الجمجمة
+      const skullGeo = new THREE.SphereGeometry(0.38, 16, 12);
+      const skull = new THREE.Mesh(skullGeo, new THREE.MeshStandardMaterial({ color: mainColor, roughness: 0.3 }));
+      skull.scale.set(0.85, 0.75, 0.7);
       skull.castShadow = skull.receiveShadow = true;
       headGroup.add(skull);
       
-      // خطم طويل
-      const snoutGeo = new THREE.CylinderGeometry(0.15, 0.22, 0.55, 8);
-      const snout = new THREE.Mesh(snoutGeo, new THREE.MeshStandardMaterial({color: mainColor, roughness:0.3}));
-      snout.position.set(0, -0.1, 0.38);
-      snout.rotation.x = -0.1;
+      // الخطم
+      const snoutGeo = new THREE.CylinderGeometry(0.14, 0.2, 0.5, 8);
+      const snout = new THREE.Mesh(snoutGeo, new THREE.MeshStandardMaterial({ color: mainColor, roughness: 0.3 }));
+      snout.position.set(0, -0.15, 0.35);
       snout.castShadow = snout.receiveShadow = true;
       headGroup.add(snout);
       
-      // مقدمة الخطم (الأنف)
-      const snoutTipGeo = new THREE.SphereGeometry(0.15, 8, 8);
-      const snoutTip = new THREE.Mesh(snoutTipGeo, new THREE.MeshStandardMaterial({color: mainColor, roughness:0.3}));
-      snoutTip.position.set(0, -0.18, 0.64);
-      snoutTip.castShadow = snoutTip.receiveShadow = true;
-      headGroup.add(snoutTip);
+      // مقدمة الفك السفلي
+      const jawGeo = new THREE.BoxGeometry(0.15, 0.08, 0.25);
+      const jaw = new THREE.Mesh(jawGeo, new THREE.MeshStandardMaterial({ color: whiteColor, roughness: 0.5 }));
+      jaw.position.set(0, -0.25, 0.45);
+      jaw.castShadow = jaw.receiveShadow = true;
+      headGroup.add(jaw);
       
-      // أنف أسود
-      const noseGeo = new THREE.SphereGeometry(0.1, 8, 8);
-      const nose = new THREE.Mesh(noseGeo, new THREE.MeshStandardMaterial({color: 0x111111, roughness:0.2}));
-      nose.position.set(0, -0.16, 0.72);
+      // الأنف
+      const noseGeo = new THREE.SphereGeometry(0.08, 8, 8);
+      const nose = new THREE.Mesh(noseGeo, new THREE.MeshStandardMaterial({ color: noseColor, roughness: 0.2 }));
+      nose.position.set(0, -0.12, 0.62);
       headGroup.add(nose);
       
-      // عيون
+      // العيون
       const eyeGeo = new THREE.SphereGeometry(0.09, 8, 8);
-      const eyeMat = new THREE.MeshStandardMaterial({color: 0x111111, roughness:0.1, emissive: 0x222222});
+      const eyeMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.1, emissive: 0x222222 });
       const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
-      leftEye.position.set(-0.22, 0.08, 0.52);
+      leftEye.position.set(-0.22, 0.08, 0.45);
       headGroup.add(leftEye);
       const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
-      rightEye.position.set(0.22, 0.08, 0.52);
+      rightEye.position.set(0.22, 0.08, 0.45);
       headGroup.add(rightEye);
       
-      // بريق العيون
-      const gleamGeo = new THREE.SphereGeometry(0.04, 4, 4);
-      const gleamMat = new THREE.MeshStandardMaterial({color: 0xffffff, roughness:0.1, emissive: 0xffffff});
+      // بريق العين
+      const gleamGeo = new THREE.SphereGeometry(0.03, 4, 4);
+      const gleamMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.1, emissive: 0xffffff });
       const leftGleam = new THREE.Mesh(gleamGeo, gleamMat);
-      leftGleam.position.set(-0.24, 0.1, 0.55);
+      leftGleam.position.set(-0.24, 0.1, 0.48);
       headGroup.add(leftGleam);
       const rightGleam = new THREE.Mesh(gleamGeo, gleamMat);
-      rightGleam.position.set(0.2, 0.1, 0.55);
+      rightGleam.position.set(0.2, 0.1, 0.48);
       headGroup.add(rightGleam);
       
-      // أذنان كبيرتان
-      const earGeo = new THREE.ConeGeometry(0.14, 0.5, 6);
-      const earMat = new THREE.MeshStandardMaterial({color: mainColor, roughness:0.3});
+      // الأذنان
+      const earGeo = new THREE.ConeGeometry(0.14, 0.55, 6);
+      const earMat = new THREE.MeshStandardMaterial({ color: mainColor, roughness: 0.3 });
       
       const earL = new THREE.Mesh(earGeo, earMat);
-      earL.position.set(-0.25, 0.3, -0.1);
-      earL.rotation.z = 0.4;
+      earL.position.set(-0.22, 0.3, -0.15);
+      earL.rotation.z = 0.5;
       earL.rotation.x = -0.3;
       earL.castShadow = earL.receiveShadow = true;
       headGroup.add(earL);
       
       const earR = new THREE.Mesh(earGeo, earMat);
-      earR.position.set(0.25, 0.3, -0.1);
-      earR.rotation.z = -0.4;
+      earR.position.set(0.22, 0.3, -0.15);
+      earR.rotation.z = -0.5;
       earR.rotation.x = -0.3;
       earR.castShadow = earR.receiveShadow = true;
       headGroup.add(earR);
       
       // داخل الأذن
-      const innerEarGeo = new THREE.ConeGeometry(0.08, 0.3, 6);
-      const innerEarMat = new THREE.MeshStandardMaterial({color: earInner, roughness:0.5});
+      const innerEarGeo = new THREE.ConeGeometry(0.08, 0.35, 6);
+      const innerEarMat = new THREE.MeshStandardMaterial({ color: 0xffaa88, roughness: 0.5 });
       const innerL = new THREE.Mesh(innerEarGeo, innerEarMat);
       innerL.position.copy(earL.position);
       innerL.rotation.copy(earL.rotation);
@@ -296,255 +359,268 @@
       fox.headGroup = headGroup;
       
       // === الأرجل المفصلة ===
-      const legs = [];
+      fox.legs = [];
       const createLeg = (x, z, isFront) => {
         const legGroup = new THREE.Group();
         legGroup.position.set(x, 0.45, z);
         
-        // الفخذ (أعلى)
-        const thighGeo = new THREE.CylinderGeometry(0.14, 0.13, 0.55, 6);
-        const thigh = new THREE.Mesh(thighGeo, new THREE.MeshStandardMaterial({color: mainColor, roughness:0.4}));
+        // الفخذ
+        const thighGeo = new THREE.CylinderGeometry(0.14, 0.13, 0.5, 6);
+        const thigh = new THREE.Mesh(thighGeo, new THREE.MeshStandardMaterial({ color: mainColor, roughness: 0.4 }));
         thigh.position.y = -0.1;
         thigh.castShadow = thigh.receiveShadow = true;
         legGroup.add(thigh);
         
         // مفصل الركبة
         const kneePivot = new THREE.Group();
-        kneePivot.position.y = -0.45;
+        kneePivot.position.y = -0.4;
         legGroup.add(kneePivot);
         
-        // الساق (أسفل داكن)
-        const shinGeo = new THREE.CylinderGeometry(0.1, 0.08, 0.45, 6);
-        const shin = new THREE.Mesh(shinGeo, new THREE.MeshStandardMaterial({color: 0x1a0a00, roughness:0.5}));
-        shin.position.y = -0.2;
+        // الساق
+        const shinGeo = new THREE.CylinderGeometry(0.1, 0.08, 0.4, 6);
+        const shin = new THREE.Mesh(shinGeo, new THREE.MeshStandardMaterial({ color: darkColor, roughness: 0.5 }));
+        shin.position.y = -0.15;
         shin.castShadow = shin.receiveShadow = true;
         kneePivot.add(shin);
         
-        // كف / مخلب
-        const pawGeo = new THREE.SphereGeometry(0.12, 6, 6);
-        const paw = new THREE.Mesh(pawGeo, new THREE.MeshStandardMaterial({color: 0x111111, roughness:0.7}));
-        paw.position.y = -0.45;
-        paw.scale.set(0.85, 0.3, 1.1);
+        // الكف
+        const pawGeo = new THREE.SphereGeometry(0.1, 6, 6);
+        const paw = new THREE.Mesh(pawGeo, new THREE.MeshStandardMaterial({ color: darkColor, roughness: 0.7 }));
+        paw.position.y = -0.38;
+        paw.scale.set(0.9, 0.3, 1.2);
         paw.castShadow = paw.receiveShadow = true;
         kneePivot.add(paw);
         
         fox.add(legGroup);
-        return { group: legGroup, kneePivot, isFront, side: x>0?'right':'left' };
+        return { group: legGroup, kneePivot, isFront, side: x > 0 ? 'right' : 'left' };
       };
       
-      fox.legs = [
-        createLeg(-0.27, 0.5, true),   // أمامي يسار
-        createLeg(0.27, 0.5, true),    // أمامي يمين
-        createLeg(-0.25, -0.5, false), // خلفي يسار
-        createLeg(0.25, -0.5, false)   // خلفي يمين
-      ];
+      fox.legs.push(createLeg(-0.28, 0.5, true));   // أمامي يسار
+      fox.legs.push(createLeg(0.28, 0.5, true));    // أمامي يمين
+      fox.legs.push(createLeg(-0.28, -0.5, false)); // خلفي يسار
+      fox.legs.push(createLeg(0.28, -0.5, false));  // خلفي يمين
       
-      // === ذيل كثيف جداً ===
+      // === الذيل الكثيف ===
       const tailGroup = new THREE.Group();
-      tailGroup.position.set(0, 0.6, -0.8);
+      tailGroup.position.set(0, 0.6, -0.85);
       fox.add(tailGroup);
       fox.tailGroup = tailGroup;
       fox.tailSegments = [];
       
       let currentGroup = tailGroup;
-      for (let i = 0; i < 9; i++) {
+      for (let i = 0; i < 10; i++) {
         const segGroup = new THREE.Group();
-        const size = 0.3 - i * 0.025;
+        const size = 0.32 - i * 0.028;
         const segGeo = new THREE.SphereGeometry(size, 8, 8);
-        const color = i === 8 ? whiteColor : mainColor;
-        const seg = new THREE.Mesh(segGeo, new THREE.MeshStandardMaterial({color, roughness:0.3}));
-        seg.scale.set(0.7, 0.7, 0.9);
+        const color = i === 9 ? whiteColor : mainColor;
+        const seg = new THREE.Mesh(segGeo, new THREE.MeshStandardMaterial({ color, roughness: 0.3 }));
+        seg.scale.set(0.7, 0.7, 0.95);
         seg.position.y = size * 0.5;
         seg.castShadow = seg.receiveShadow = true;
         segGroup.add(seg);
         
         if (i > 0) {
-          segGroup.position.set(0, 0.2, 0);
+          segGroup.position.set(0, 0.22, 0);
         }
         currentGroup.add(segGroup);
-        fox.tailSegments.push({ group: segGroup, phase: i * 0.5 });
+        fox.tailSegments.push({ group: segGroup, phase: i * 0.45 });
         currentGroup = segGroup;
       }
       
-      fox.userData = { walkPhase: Math.random()*Math.PI*2, tailTime: 0 };
+      fox.userData = {
+        walkPhase: Math.random() * Math.PI * 2,
+        tailTime: 0,
+        speed: 0
+      };
+      
       return fox;
     }
 
     // إنشاء الثعلبين
-    const maleFox = createFox('male');
-    maleFox.position.set(-5, 0, 0);
+    const maleFox = createFox(0xd45d1e, 0xffeedd, 'male');
+    maleFox.position.set(-4, 0, 0);
     scene.add(maleFox);
     
-    const femaleFox = createFox('female');
-    femaleFox.position.set(4, 0, 2);
+    const femaleFox = createFox(0xe87a3a, 0xffeedd, 'female');
+    femaleFox.position.set(4, 0, 1);
     scene.add(femaleFox);
 
-    // ========== الذكاء الاصطناعي (نفس المنطق السابق) ==========
-    const forestRadius = 38;
-    const maleFoxState = { type:'wander', target:new THREE.Vector2(-5,0), timer:0, jumpState:null };
-    const femaleFoxState = { type:'wander', target:new THREE.Vector2(4,2), timer:0, jumpState:null };
+    // ========== سلوك الثعالب (AI) ==========
+    const forestRadius = 42;
+    const maleState = { type: 'wander', target: new THREE.Vector2(-4, 0), timer: 0, jumpState: null };
+    const femaleState = { type: 'wander', target: new THREE.Vector2(4, 1), timer: 0, jumpState: null };
     
-    function getRandomForestPoint(){
-      const a = Math.random()*Math.PI*2;
-      const r = 5+Math.random()*(forestRadius-5);
-      return new THREE.Vector2(Math.cos(a)*r, Math.sin(a)*r);
+    function getRandomPoint() {
+      const a = Math.random() * Math.PI * 2;
+      const r = 5 + Math.random() * (forestRadius - 5);
+      return new THREE.Vector2(Math.cos(a) * r, Math.sin(a) * r);
     }
-    function dist2D(a,b){ return Math.sqrt((a.x-b.x)**2+(a.y-b.y)**2); }
     
-    function updateFoxAI(fox, otherFox, state, otherState, delta){
+    function dist2D(a, b) {
+      return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
+    }
+
+    function updateAI(fox, otherFox, state, otherState, delta) {
       const pos = new THREE.Vector2(fox.position.x, fox.position.z);
       const otherPos = new THREE.Vector2(otherFox.position.x, otherFox.position.z);
       const dist = dist2D(pos, otherPos);
       
-      if(state.jumpState){
+      // حالة القفز
+      if (state.jumpState) {
         state.jumpState.time -= delta;
-        if(state.jumpState.time <= 0){
+        if (state.jumpState.time <= 0) {
           fox.position.y = 0;
           fox.rotation.x = 0;
           state.jumpState = null;
           state.type = 'wander';
-          state.target = getRandomForestPoint();
+          state.target = getRandomPoint();
         }
         return;
       }
       
       state.timer -= delta;
       
-      if(dist < 12 && state.type==='wander' && state.timer<=0 && Math.random()<0.01){
-        state.type = 'chase';
-        state.timer = 4+Math.random()*3;
+      // بدء المطاردة أو اللعب
+      if (dist < 14 && state.type === 'wander' && state.timer <= 0) {
+        if (Math.random() < 0.02) {
+          state.type = 'chase';
+          state.timer = 3 + Math.random() * 4;
+          if (Math.random() < 0.5) otherState.type = 'flee';
+        }
       }
       
-      if(dist < 5 && Math.random()<0.008 && !maleFoxState.jumpState && !femaleFoxState.jumpState){
-        const playType = Math.random()<0.5?'jump':'somersault';
-        const dur = playType==='jump'?1.2:1.8;
-        maleFoxState.jumpState = { time:dur, type:playType };
-        femaleFoxState.jumpState = { time:dur, type:playType };
-        maleFoxState.type = 'play';
-        femaleFoxState.type = 'play';
+      // قفزة مرحة
+      if (dist < 6 && Math.random() < 0.01 && !maleState.jumpState && !femaleState.jumpState) {
+        const playType = Math.random() < 0.5 ? 'jump' : 'somersault';
+        const dur = playType === 'jump' ? 1.0 : 1.6;
+        maleState.jumpState = { time: dur, type: playType };
+        femaleState.jumpState = { time: dur, type: playType };
+        maleState.type = 'play';
+        femaleState.type = 'play';
       }
       
-      if(state.type === 'wander'){
-        const dir = new THREE.Vector2(state.target.x-pos.x, state.target.y-pos.y);
-        if(dir.length()<0.8 || state.timer<=0){
-          state.target = getRandomForestPoint();
-          state.timer = 3+Math.random()*5;
+      // التجوال
+      if (state.type === 'wander') {
+        const dir = new THREE.Vector2(state.target.x - pos.x, state.target.y - pos.y);
+        if (dir.length() < 0.8 || state.timer <= 0) {
+          state.target = getRandomPoint();
+          state.timer = 2 + Math.random() * 4;
         }
         dir.normalize();
-        fox.position.x += dir.x*delta*2.5;
-        fox.position.z += dir.y*delta*2.5;
+        fox.position.x += dir.x * delta * 3.0;
+        fox.position.z += dir.y * delta * 3.0;
         fox.rotation.y = Math.atan2(dir.x, dir.y);
       }
-      else if(state.type === 'chase'){
-        if(fox === maleFox){
-          // الذكر يطارد الأنثى
-          const dir = new THREE.Vector2(otherPos.x-pos.x, otherPos.y-pos.y);
-          const len = dir.length();
-          if(len<1.5){
-            state.type='wander'; state.target=getRandomForestPoint(); state.timer=2;
+      
+      // المطاردة / الهروب
+      if (state.type === 'chase' || state.type === 'flee') {
+        let dir;
+        if (state.type === 'chase') {
+          dir = new THREE.Vector2(otherPos.x - pos.x, otherPos.y - pos.y);
+          if (dir.length() < 1.5) {
+            state.type = 'wander'; state.target = getRandomPoint(); state.timer = 2;
           } else {
-            dir.normalize();
-            fox.position.x += dir.x*delta*4.5;
-            fox.position.z += dir.y*delta*4.5;
-            fox.rotation.y = Math.atan2(dir.x, dir.y);
+            const speed = 4.5;
+            fox.position.x += dir.normalize().x * delta * speed;
+            fox.position.z += dir.normalize().y * delta * speed;
           }
         } else {
-          // الأنثى تهرب
-          const dir = new THREE.Vector2(pos.x-otherPos.x, pos.y-otherPos.y);
-          if(dir.length()>0.01){
-            dir.normalize();
-            dir.x += (Math.random()-0.5)*0.3;
-            dir.y += (Math.random()-0.5)*0.3;
-            dir.normalize();
-            fox.position.x += dir.x*delta*4.0;
-            fox.position.z += dir.y*delta*4.0;
-            fox.rotation.y = Math.atan2(dir.x, dir.y);
-          }
-          if(state.timer<=0 || dist>18){
-            state.type='wander'; state.target=getRandomForestPoint(); state.timer=2;
+          dir = new THREE.Vector2(pos.x - otherPos.x, pos.y - otherPos.y);
+          dir.normalize();
+          dir.x += (Math.random() - 0.5) * 0.2;
+          dir.y += (Math.random() - 0.5) * 0.2;
+          const speed = 4.2;
+          fox.position.x += dir.normalize().x * delta * speed;
+          fox.position.z += dir.normalize().y * delta * speed;
+          if (state.timer <= 0 || dist > 15) {
+            state.type = 'wander'; state.target = getRandomPoint(); state.timer = 2;
           }
         }
+        const lookDir = state.type === 'chase' ? 
+          new THREE.Vector2(otherPos.x - pos.x, otherPos.y - pos.y) : 
+          new THREE.Vector2(pos.x - otherPos.x, pos.y - otherPos.y);
+        fox.rotation.y = Math.atan2(lookDir.x, lookDir.y);
       }
       
-      const p = new THREE.Vector2(fox.position.x, fox.position.z);
-      if(p.length()>forestRadius){
-        p.normalize().multiplyScalar(forestRadius-0.5);
-        fox.position.x = p.x;
-        fox.position.z = p.y;
+      // الحدود
+      if (pos.length() > forestRadius) {
+        pos.normalize().multiplyScalar(forestRadius - 0.5);
+        fox.position.x = pos.x;
+        fox.position.z = pos.y;
       }
     }
-    
+
     // ========== تحريك الأجزاء ==========
-    function animateFoxParts(fox, speed, deltaTime){
-      fox.userData.walkPhase += speed * deltaTime * 12;
-      fox.userData.tailTime += deltaTime;
+    function animateFox(fox, speed, delta) {
+      fox.userData.walkPhase += speed * delta * 12;
+      fox.userData.tailTime += delta;
       const phase = fox.userData.walkPhase;
       const t = fox.userData.tailTime;
       
       // الأرجل
-      fox.legs.forEach((leg,i)=>{
+      fox.legs.forEach((leg, i) => {
         const isFront = leg.isFront;
-        const sideOff = leg.side==='right'? Math.PI : 0;
-        const frontOff = isFront? 0 : Math.PI*0.7;
-        const legPhase = phase + sideOff + frontOff;
+        const sideOff = leg.side === 'right' ? Math.PI : 0;
+        const frontOff = isFront ? 0 : Math.PI * 0.8;
+        const lp = phase + sideOff + frontOff;
         
-        leg.group.rotation.x = Math.sin(legPhase) * 0.55;
-        leg.kneePivot.rotation.x = Math.abs(Math.sin(legPhase)) * 0.7;
+        leg.group.rotation.x = Math.sin(lp) * 0.6;
+        leg.kneePivot.rotation.x = Math.abs(Math.cos(lp)) * 0.7 + 0.1;
       });
       
       // الذيل
-      fox.tailSegments.forEach((seg,i)=>{
-        const wave = Math.sin(t*5 + seg.phase) * 0.3;
-        const wave2 = Math.cos(t*3.5 + seg.phase) * 0.2;
-        seg.group.rotation.x = wave * 0.9;
-        seg.group.rotation.z = wave2;
+      fox.tailSegments.forEach((seg, i) => {
+        const wave = Math.sin(t * 6 + seg.phase) * 0.35;
+        const wave2 = Math.cos(t * 4 + seg.phase) * 0.2;
+        seg.group.rotation.x = wave * 1.0;
+        seg.group.rotation.z = wave2 * 0.8;
       });
       
       // الرأس
-      if(fox.headGroup){
-        fox.headGroup.rotation.x = Math.sin(phase*1.5)*0.07;
-        fox.headGroup.rotation.z = Math.cos(phase*1.2)*0.05;
+      if (fox.headGroup) {
+        fox.headGroup.rotation.x = Math.sin(phase * 1.5) * 0.06;
+        fox.headGroup.rotation.z = Math.cos(phase * 1.2) * 0.04;
       }
       
       // ارتفاع الجسم
-      if(fox.body){
-        fox.body.position.y = 0.65 + Math.abs(Math.sin(phase))*0.04;
+      if (fox.body) {
+        fox.body.position.y = 0.65 + Math.abs(Math.sin(phase)) * 0.05;
       }
     }
 
     // ========== الحلقة الرئيسية ==========
     const clock = new THREE.Clock();
-    function animate(){
+    
+    function animate() {
       const delta = Math.min(clock.getDelta(), 0.1);
       
-      updateFoxAI(maleFox, femaleFox, maleFoxState, femaleFoxState, delta);
-      updateFoxAI(femaleFox, maleFox, femaleFoxState, maleFoxState, delta);
+      updateAI(maleFox, femaleFox, maleState, femaleState, delta);
+      updateAI(femaleFox, maleFox, femaleState, maleState, delta);
       
       const maleSpeed = dist2D(
         new THREE.Vector2(maleFox.position.x, maleFox.position.z),
-        new THREE.Vector2(maleFox.userData.prevX||0, maleFox.userData.prevZ||0)
-      )/delta;
+        new THREE.Vector2(maleFox.userData.prevX || 0, maleFox.userData.prevZ || 0)
+      ) / delta;
       const femaleSpeed = dist2D(
         new THREE.Vector2(femaleFox.position.x, femaleFox.position.z),
-        new THREE.Vector2(femaleFox.userData.prevX||0, femaleFox.userData.prevZ||0)
-      )/delta;
+        new THREE.Vector2(femaleFox.userData.prevX || 0, femaleFox.userData.prevZ || 0)
+      ) / delta;
       
       maleFox.userData.prevX = maleFox.position.x;
       maleFox.userData.prevZ = maleFox.position.z;
       femaleFox.userData.prevX = femaleFox.position.x;
       femaleFox.userData.prevZ = femaleFox.position.z;
       
-      animateFoxParts(maleFox, Math.min(maleSpeed/4.0, 1.0), delta);
-      animateFoxParts(femaleFox, Math.min(femaleSpeed/4.0, 1.0), delta);
+      animateFox(maleFox, Math.min(maleSpeed / 3.5, 1.2), delta);
+      animateFox(femaleFox, Math.min(femaleSpeed / 3.5, 1.2), delta);
       
       // تحديث القفز/الشقلبة
-      [maleFox, femaleFox].forEach((fox, idx)=>{
-        const state = idx===0? maleFoxState : femaleFoxState;
-        if(state.jumpState){
-          const elapsed = 1 - state.jumpState.time / (state.jumpState.type==='jump'?1.2:1.8);
-          const jumpHeight = Math.sin(elapsed*Math.PI)*2.5;
-          fox.position.y = jumpHeight;
-          fox.rotation.x = state.jumpState.type==='somersault' ? elapsed*Math.PI*2 : 0;
+      [maleFox, femaleFox].forEach((fox, idx) => {
+        const state = idx === 0 ? maleState : femaleState;
+        if (state.jumpState) {
+          const elapsed = 1 - state.jumpState.time / (state.jumpState.type === 'jump' ? 1.0 : 1.6);
+          fox.position.y = Math.sin(elapsed * Math.PI) * 2.5;
+          fox.rotation.x = state.jumpState.type === 'somersault' ? elapsed * Math.PI * 2 : 0;
         }
       });
       
@@ -552,15 +628,16 @@
       renderer.render(scene, camera);
       requestAnimationFrame(animate);
     }
+    
     animate();
 
-    window.addEventListener('resize', ()=>{
-      camera.aspect = window.innerWidth/window.innerHeight;
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
-    console.log('🦊 الثعالب المحسّنة جاهزة!');
+    console.log('🦊 بيئة الغابة والثعالب المحسّنة جاهزة!');
   </script>
 </body>
-</html>
+  </html>
