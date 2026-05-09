@@ -48,9 +48,6 @@ canvas { display:block; }
 <body>
 <div id="hud">
 </div>
-<div id="behavior-label">🌿 يستكشفان المكان...</div>
-<div id="time-btn">☀️ تبديل النهار / الليل</div>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 // ══════════════════════════════════════════════════════
@@ -99,8 +96,8 @@ sunLight.position.set(15, 25, 10);
 sunLight.castShadow = true;
 sunLight.shadow.mapSize.set(2030, 2030);
 sunLight.shadow.camera.near = 1; sunLight.shadow.camera.far = 200;
-sunLight.shadow.camera.left = -25; sunLight.shadow.camera.right = 50;
-sunLight.shadow.camera.top = 25; sunLight.shadow.camera.bottom = -50;
+sunLight.shadow.camera.left = -25; sunLight.shadow.camera.right = 15;
+sunLight.shadow.camera.top = 25; sunLight.shadow.camera.bottom = -15;
 sunLight.shadow.bias = -0.001;
 scene.add(sunLight);
 
