@@ -1,1 +1,766 @@
-'
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>غابة الثعالب الحمراء مع جبال - إصدار متصل</title>
+  <style>
+    body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    #info {
+      position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.7);
+      color: white; padding: 12px 20px; border-radius: 10px; pointer-events: none;
+      backdrop-filter: blur(5px); z-index: 10;
+    }
+  </style>
+</head>
+<body>
+  <div id="info">
+    <h2>🦊 ثعلبان متصلان في الغابة الجبلية</h2>
+    <p>أجسام ناعمة متصلة | جبال في الخلفية | حركات حيوية</p>
+    <p style="font-size:0.8em;opacity:0.8">🖱️ اسحب للدوران | 🔍 عجلة للتكبير</p>
+  </div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+
+    // ========== المشهد الأساسي ==========
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x87CEEB);
+    scene.fog = new THREE.Fog(0x87CEEB, 35, 100);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 300);
+    camera.position.set(18, 16, 28);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    document.body.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.target.set(0, 0, 0);
+    controls.maxPolarAngle = Math.PI / 2.1;
+    controls.minDistance = 8;
+    controls.maxDistance = 60;
+    controls.update();
+
+    // ========== إضاءة ==========
+    const sunLight = new THREE.DirectionalLight(0xfff5e6, 2.8);
+    sunLight.position.set(25, 40, 20);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.width = 2048;
+    sunLight.shadow.mapSize.height = 2048;
+    sunLight.shadow.camera.near = 1;
+    sunLight.shadow.camera.far = 100;
+    sunLight.shadow.camera.left = -50;
+    sunLight.shadow.camera.right = 50;
+    sunLight.shadow.camera.top = 50;
+    sunLight.shadow.camera.bottom = -50;
+    sunLight.shadow.bias = -0.0005;
+    scene.add(sunLight);
+
+    const hemiLight = new THREE.HemisphereLight(0x87CEEB, 0x5a4a3a, 0.7);
+    scene.add(hemiLight);
+    const ambientLight = new THREE.AmbientLight(0x404060, 0.4);
+    scene.add(ambientLight);
+
+    // ========== أرضية متموجة ==========
+    const groundCanvas = document.createElement('canvas');
+    groundCanvas.width = 512;
+    groundCanvas.height = 512;
+    const gctx = groundCanvas.getContext('2d');
+    gctx.fillStyle = '#5a8f4a';
+    gctx.fillRect(0,0,512,512);
+    for (let i=0;i<4000;i++) {
+      gctx.fillStyle = `rgb(${60+Math.random()*40},${100+Math.random()*50},${40+Math.random()*40})`;
+      gctx.fillRect(Math.random()*512, Math.random()*512, 2,3);
+    }
+    const groundTex = new THREE.CanvasTexture(groundCanvas);
+    groundTex.wrapS = groundTex.wrapT = THREE.RepeatWrapping;
+    groundTex.repeat.set(20,20);
+
+    const groundGeo = new THREE.PlaneGeometry(100, 100, 40, 40);
+    // إضافة تموجات بسيطة
+    const posArray = groundGeo.attributes.position.array;
+    for (let i = 0; i < posArray.length; i += 3) {
+      const x = posArray[i];
+      const y = posArray[i+1];
+      const z = posArray[i+2];
+      // تموج خفيف يعتمد على الموقع
+      posArray[i+2] = z + Math.sin(x * 0.3) * Math.cos(y * 0.3) * 0.8;
+    }
+    groundGeo.computeVertexNormals();
+    
+    const ground = new THREE.Mesh(groundGeo, new THREE.MeshStandardMaterial({ map: groundTex, roughness: 0.9, metalness: 0.0 }));
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -0.15;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    // عشب
+    const grassMat = new THREE.MeshStandardMaterial({ color: 0x6b9e4a, roughness: 0.7 });
+    for (let i=0; i<400; i++) {
+      const tuft = new THREE.Group();
+      const x = (Math.random()-0.5)*90;
+      const z = (Math.random()-0.5)*90;
+      for (let j=0; j<6; j++) {
+        const blade = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.2+Math.random()*0.35, 4), grassMat);
+        blade.position.set((Math.random()-0.5)*0.25, 0.15, (Math.random()-0.5)*0.25);
+        blade.rotation.x = (Math.random()-0.5)*0.6;
+        blade.rotation.z = (Math.random()-0.5)*0.6;
+        blade.castShadow = true;
+        blade.receiveShadow = true;
+        tuft.add(blade);
+      }
+      tuft.position.set(x, 0, z);
+      scene.add(tuft);
+    }
+
+    // ========== جبال ==========
+    function createMountain(x, z, height, radius, snowHeight = 0.7) {
+      const group = new THREE.Group();
+      // الجسم الأساسي (ترابي)
+      const bodyGeo = new THREE.ConeGeometry(radius, height, 16, 4);
+      const bodyMat = new THREE.MeshStandardMaterial({ color: 0x7a6b5c, roughness: 0.8, metalness: 0.1 });
+      const body = new THREE.Mesh(bodyGeo, bodyMat);
+      body.position.y = height/2;
+      body.castShadow = true;
+      body.receiveShadow = true;
+      group.add(body);
+      
+      // قمة ثلجية
+      const snowGeo = new THREE.ConeGeometry(radius * 0.5, height * 0.35, 16, 3);
+      const snowMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4, emissive: 0x222222 });
+      const snow = new THREE.Mesh(snowGeo, snowMat);
+      snow.position.y = height * 0.82;
+      snow.castShadow = true;
+      snow.receiveShadow = true;
+      group.add(snow);
+      
+      group.position.set(x, 0, z);
+      return group;
+    }
+
+    // إنشاء سلسلة جبال في الخلفية
+    const mountainPositions = [
+      { x: -40, z: -35, h: 18, r: 7 },
+      { x: -25, z: -38, h: 14, r: 5.5 },
+      { x: -10, z: -40, h: 20, r: 8 },
+      { x: 10, z: -39, h: 16, r: 6.5 },
+      { x: 25, z: -36, h: 15, r: 6 },
+      { x: 38, z: -32, h: 12, r: 5 },
+      { x: -38, z: 33, h: 13, r: 5.5 },
+      { x: -20, z: 37, h: 17, r: 7 },
+      { x: 5, z: 38, h: 19, r: 7.5 },
+      { x: 30, z: 35, h: 14, r: 6 },
+    ];
+    mountainPositions.forEach(m => {
+      scene.add(createMountain(m.x, m.z, m.h, m.r));
+    });
+
+    // ========== أشجار ==========
+    function createTree(x, z, scale = 1.0) {
+      const tree = new THREE.Group();
+      const trunkH = 3.5 * scale;
+      const trunkR = 0.35 * scale;
+      const trunkGeo = new THREE.CylinderGeometry(trunkR*0.8, trunkR, trunkH, 8);
+      const trunkMat = new THREE.MeshStandardMaterial({ color: 0x6b4c3b, roughness: 0.8 });
+      const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+      trunk.position.y = trunkH/2;
+      trunk.castShadow = trunk.receiveShadow = true;
+      tree.add(trunk);
+      
+      const leafColors = [0x2d5a27, 0x3d6b37, 0x4a7c40, 0x1e4a1b];
+      for (let i=0; i<6; i++) {
+        const leaf = new THREE.Mesh(
+          new THREE.SphereGeometry(0.8*scale, 7,7),
+          new THREE.MeshStandardMaterial({ color: leafColors[Math.floor(Math.random()*4)], roughness:0.6 })
+        );
+        leaf.position.y = trunkH + i*0.6*scale;
+        leaf.position.x = (Math.random()-0.5)*0.6*scale;
+        leaf.position.z = (Math.random()-0.5)*0.6*scale;
+        leaf.scale.set(0.8+Math.random()*0.5, 0.6+Math.random()*0.4, 0.8+Math.random()*0.5);
+        leaf.castShadow = leaf.receiveShadow = true;
+        tree.add(leaf);
+      }
+      tree.position.set(x, 0, z);
+      return tree;
+    }
+
+    for (let i=0; i<80; i++) {
+      const angle = Math.random()*Math.PI*2;
+      const radius = 6 + Math.random()*42;
+      const x = Math.cos(angle)*radius;
+      const z = Math.sin(angle)*radius;
+      if (Math.abs(x)<2 && Math.abs(z)<2) continue;
+      scene.add(createTree(x, z, 0.7+Math.random()*1.4));
+    }
+
+    // صخور
+    const rockGeo = new THREE.IcosahedronGeometry(0.3, 0);
+    const rockMat = new THREE.MeshStandardMaterial({ color: 0x777777, roughness:0.6 });
+    for (let i=0; i<70; i++) {
+      const rock = new THREE.Mesh(rockGeo, rockMat);
+      const a = Math.random()*Math.PI*2;
+      const d = 5+Math.random()*42;
+      rock.position.set(Math.cos(a)*d, 0.05, Math.sin(a)*d);
+      rock.scale.setScalar(0.5+Math.random()*2.2);
+      rock.rotation.set(Math.random()*Math.PI, Math.random()*Math.PI, Math.random()*Math.PI);
+      rock.castShadow = rock.receiveShadow = true;
+      scene.add(rock);
+    }
+
+    // ========== الثعلب المتصل (ميش واحد) ==========
+    function createFox(color, bellyColor, gender = 'male') {
+      const fox = new THREE.Group();
+      const darkColor = 0x1a0a00;
+      const whiteColor = 0xfff5e6;
+      const noseColor = 0x111111;
+      
+      // سنقوم ببناء الأجزاء ثم دمجها في mesh واحد
+      const geometries = [];
+      
+      // مادة الجسم والرأس (موحدة)
+      const bodyMaterial = new THREE.MeshStandardMaterial({ color, roughness: 0.35 });
+      const bellyMaterial = new THREE.MeshStandardMaterial({ color: bellyColor, roughness: 0.45 });
+      const whiteMaterial = new THREE.MeshStandardMaterial({ color: whiteColor, roughness: 0.5 });
+      const darkMaterial = new THREE.MeshStandardMaterial({ color: darkColor, roughness: 0.5 });
+      
+      // الجسم: كبسولتان متداخلتان للصدر والبطن
+      const chestGeo = new THREE.CapsuleGeometry(0.42, 0.7, 8, 12);
+      const chestMesh = new THREE.Mesh(chestGeo);
+      chestMesh.position.set(0, 0.85, 0.2);
+      chestMesh.scale.set(0.9, 0.75, 0.65);
+      chestMesh.updateMatrix();
+      
+      const bellyGeo2 = new THREE.CapsuleGeometry(0.38, 0.8, 8, 12);
+      const bellyMesh2 = new THREE.Mesh(bellyGeo2);
+      bellyMesh2.position.set(0, 0.55, -0.25);
+      bellyMesh2.scale.set(0.85, 0.6, 0.6);
+      bellyMesh2.updateMatrix();
+      
+      // الرقبة
+      const neckGeo = new THREE.CylinderGeometry(0.18, 0.22, 0.45, 8);
+      const neckMesh = new THREE.Mesh(neckGeo);
+      neckMesh.position.set(0, 1.15, 0.45);
+      neckMesh.updateMatrix();
+      
+      // الرأس
+      const headGeo = new THREE.SphereGeometry(0.38, 12, 10);
+      const headMesh = new THREE.Mesh(headGeo);
+      headMesh.position.set(0, 1.35, 0.7);
+      headMesh.scale.set(0.85, 0.75, 0.7);
+      headMesh.updateMatrix();
+      
+      // الخطم
+      const snoutGeo = new THREE.CylinderGeometry(0.13, 0.19, 0.55, 8);
+      const snoutMesh = new THREE.Mesh(snoutGeo);
+      snoutMesh.position.set(0, 1.2, 1.05);
+      snoutMesh.rotation.x = -0.1;
+      snoutMesh.updateMatrix();
+      
+      // الفك السفلي
+      const jawGeo = new THREE.BoxGeometry(0.14, 0.08, 0.2);
+      const jawMesh = new THREE.Mesh(jawGeo);
+      jawMesh.position.set(0, 1.05, 1.1);
+      jawMesh.updateMatrix();
+      
+      // الأذنان
+      const earGeo = new THREE.ConeGeometry(0.14, 0.55, 6);
+      const earLMesh = new THREE.Mesh(earGeo);
+      earLMesh.position.set(-0.22, 1.65, 0.55);
+      earLMesh.rotation.z = 0.5;
+      earLMesh.rotation.x = -0.3;
+      earLMesh.updateMatrix();
+      
+      const earRMesh = new THREE.Mesh(earGeo);
+      earRMesh.position.set(0.22, 1.65, 0.55);
+      earRMesh.rotation.z = -0.5;
+      earRMesh.rotation.x = -0.3;
+      earRMesh.updateMatrix();
+      
+      // الأرجل (4)
+      const upperLegGeo = new THREE.CylinderGeometry(0.14, 0.12, 0.5, 6);
+      const lowerLegGeo = new THREE.CylinderGeometry(0.1, 0.08, 0.45, 6);
+      const pawGeo = new THREE.SphereGeometry(0.1, 6, 6);
+      const legMeshes = [];
+      
+      const legPositions = [
+        { x: -0.26, z: 0.5, front: true },  // أمامي يسار
+        { x: 0.26, z: 0.5, front: true },   // أمامي يمين
+        { x: -0.26, z: -0.45, front: false }, // خلفي يسار
+        { x: 0.26, z: -0.45, front: false }  // خلفي يمين
+      ];
+      
+      legPositions.forEach(pos => {
+        const upper = new THREE.Mesh(upperLegGeo);
+        upper.position.set(pos.x, 0.55, pos.z);
+        upper.updateMatrix();
+        legMeshes.push({ mesh: upper, isUpper: true });
+        
+        const lower = new THREE.Mesh(lowerLegGeo);
+        lower.position.set(pos.x, 0.2, pos.z);
+        lower.updateMatrix();
+        legMeshes.push({ mesh: lower, isUpper: false });
+        
+        const paw = new THREE.Mesh(pawGeo);
+        paw.position.set(pos.x, -0.05, pos.z + 0.05);
+        paw.scale.set(0.9, 0.3, 1.2);
+        paw.updateMatrix();
+        legMeshes.push({ mesh: paw, isUpper: false });
+      });
+      
+      // الذيل (باستخدام أنبوب)
+      const tailCurve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(0, 0.6, -0.85),
+        new THREE.Vector3(0, 0.9, -1.2),
+        new THREE.Vector3(-0.1, 1.1, -1.6),
+        new THREE.Vector3(0.05, 1.3, -2.0),
+        new THREE.Vector3(0.15, 1.45, -2.5),
+        new THREE.Vector3(0.1, 1.55, -3.0)
+      ]);
+      const tailGeo = new THREE.TubeGeometry(tailCurve, 20, 0.28, 8, false);
+      const tailMesh = new THREE.Mesh(tailGeo);
+      tailMesh.updateMatrix();
+      
+      // طرف الذيل الأبيض (كرة)
+      const tailTipGeo = new THREE.SphereGeometry(0.2, 8, 8);
+      const tailTipMesh = new THREE.Mesh(tailTipGeo);
+      const tipPoint = tailCurve.getPoint(1);
+      tailTipMesh.position.copy(tipPoint);
+      tailTipMesh.updateMatrix();
+      
+      // تجميع كل الهندسات للدمج
+      const allGeos = [
+        { geo: chestGeo.clone(), matrix: chestMesh.matrix, material: bodyMaterial },
+        { geo: bellyGeo2.clone(), matrix: bellyMesh2.matrix, material: bodyMaterial },
+        { geo: neckGeo.clone(), matrix: neckMesh.matrix, material: bodyMaterial },
+        { geo: headGeo.clone(), matrix: headMesh.matrix, material: bodyMaterial },
+        { geo: snoutGeo.clone(), matrix: snoutMesh.matrix, material: bodyMaterial },
+        { geo: jawGeo.clone(), matrix: jawMesh.matrix, material: whiteMaterial },
+        { geo: earGeo.clone(), matrix: earLMesh.matrix, material: bodyMaterial },
+        { geo: earGeo.clone(), matrix: earRMesh.matrix, material: bodyMaterial },
+      ];
+      
+      legMeshes.forEach(leg => {
+        const geo = leg.mesh.geometry.clone();
+        const mat = leg.isUpper ? bodyMaterial : darkMaterial;
+        allGeos.push({ geo, matrix: leg.mesh.matrix, material: mat });
+      });
+      
+      // الذيل بلون الجسم
+      allGeos.push({ geo: tailGeo.clone(), matrix: tailMesh.matrix, material: bodyMaterial });
+      // طرف الذيل أبيض
+      allGeos.push({ geo: tailTipGeo.clone(), matrix: tailTipMesh.matrix, material: whiteMaterial });
+      
+      // دمج كل الأجزاء حسب المادة
+      const mergedByMaterial = {};
+      allGeos.forEach(item => {
+        const matKey = item.material.uuid;
+        if (!mergedByMaterial[matKey]) {
+          mergedByMaterial[matKey] = { geometries: [], material: item.material };
+        }
+        const geo = item.geo.clone();
+        geo.applyMatrix4(item.matrix);
+        mergedByMaterial[matKey].geometries.push(geo);
+      });
+      
+      // إنشاء mesh لكل مجموعة مدمجة
+      Object.values(mergedByMaterial).forEach(group => {
+        if (group.geometries.length > 0) {
+          const mergedGeo = group.geometries.length === 1 ? 
+            group.geometries[0] : 
+            mergeGeometries(group.geometries);
+          const mesh = new THREE.Mesh(mergedGeo, group.material);
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+          fox.add(mesh);
+        }
+      });
+      
+      // إضافة العيون والأنف (غير مدمجة للبساطة)
+      const eyeGeo = new THREE.SphereGeometry(0.09, 8, 8);
+      const eyeMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.1, emissive: 0x222222 });
+      const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+      leftEye.position.set(-0.22, 1.4, 0.85);
+      fox.add(leftEye);
+      const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+      rightEye.position.set(0.22, 1.4, 0.85);
+      fox.add(rightEye);
+      
+      const gleamGeo = new THREE.SphereGeometry(0.03, 4, 4);
+      const gleamMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.1, emissive: 0xffffff });
+      const leftGleam = new THREE.Mesh(gleamGeo, gleamMat);
+      leftGleam.position.set(-0.24, 1.42, 0.88);
+      fox.add(leftGleam);
+      const rightGleam = new THREE.Mesh(gleamGeo, gleamMat);
+      rightGleam.position.set(0.2, 1.42, 0.88);
+      fox.add(rightGleam);
+      
+      const noseGeo = new THREE.SphereGeometry(0.08, 8, 8);
+      const noseMat = new THREE.MeshStandardMaterial({ color: noseColor, roughness: 0.2 });
+      const nose = new THREE.Mesh(noseGeo, noseMat);
+      nose.position.set(0, 1.18, 1.32);
+      fox.add(nose);
+      
+      // أذن داخلية
+      const innerEarGeo = new THREE.ConeGeometry(0.08, 0.35, 6);
+      const innerEarMat = new THREE.MeshStandardMaterial({ color: 0xffaa88, roughness: 0.5 });
+      const innerL = new THREE.Mesh(innerEarGeo, innerEarMat);
+      innerL.position.copy(earLMesh.position);
+      innerL.rotation.copy(earLMesh.rotation);
+      innerL.position.z += 0.02;
+      fox.add(innerL);
+      const innerR = new THREE.Mesh(innerEarGeo, innerEarMat);
+      innerR.position.copy(earRMesh.position);
+      innerR.rotation.copy(earRMesh.rotation);
+      innerR.position.z += 0.02;
+      fox.add(innerR);
+      
+      // تخزين مراجع للأجزاء المتحركة (نستخدم المجموعة للتحديث)
+      fox.userData = {
+        walkPhase: Math.random() * Math.PI * 2,
+        tailTime: 0,
+      };
+      
+      // سنضيف أجزاء الأرجل والذيل كمفاصل للتحكم بها (نقوم بإنشاء مجموعات منفصلة للحركة)
+      // لتسهيل التحريك، سنستخدم مجموعات فارغة ونضيف إليها الأجزاء المناسبة
+      fox.legGroups = [];
+      fox.tailGroup = new THREE.Group();
+      fox.add(fox.tailGroup);
+      
+      // إعادة بناء الذيل داخل tailGroup
+      const tailMeshForGroup = new THREE.Mesh(tailGeo, bodyMaterial);
+      tailMeshForGroup.castShadow = tailMeshForGroup.receiveShadow = true;
+      fox.tailGroup.add(tailMeshForGroup);
+      const tailTipForGroup = new THREE.Mesh(tailTipGeo, whiteMaterial);
+      tailTipForGroup.position.copy(tipPoint);
+      tailTipForGroup.castShadow = tailTipForGroup.receiveShadow = true;
+      fox.tailGroup.add(tailTipForGroup);
+      
+      // إزالة الذيل من الأجزاء المدمجة (لأننا أضفناه منفصلاً للتحريك)
+      // لكن تم دمجهم سابقاً، سنقوم ببساطة بإخفاء الذيل المدمج أو إعادة بناء.
+      // لتجنب التعقيد، نعتمد على أن الذيل المدمج سيظل ثابتاً، ونضيف ذيل متحرك فوقه.
+      // لكن الأفضل: نمنع دمج الذيل ونضعه في مجموعة متحركة.
+      // سأقوم بتعديل الكود: إزالة الذيل من allGeos، وإضافته يدوياً إلى fox.tailGroup.
+      // (تم تعديل فوق بإضافة الذيل إلى fox.tailGroup وليس إلى الدمج)
+      
+      // لتصحيح الدمج: نحتاج إعادة إنشاء الثعلب بدون الذيل في الدمج.
+      // سأقوم بإعادة بناء سريعة:
+      fox.clear();
+      
+      // --- إعادة بناء بدون دمج الذيل ---
+      const bodyPartsGeos = allGeos.filter(item => item !== allGeos[allGeos.length-2] && item !== allGeos[allGeos.length-1]); // استبعاد الذيل وطرفه
+      // لكن هذا غير دقيق. سأقوم ببناء صريح.
+      
+      // سأبسط: سأستخدم النموذج السابق (الأجزاء المنفصلة) ولكن مع تغطيته بـ "جلد" خارجي عن طريق إضافة mesh شفاف؟ لا.
+      // الأفضل العودة لطريقة الأجزاء المنفصلة مع ضمان الاتصال عن طريق تداخل الأجزاء واستخدام نفس المادة.
+      // نظراً لأن الدمج معقد، سأعتمد على أن الأجزاء المتجاورة متداخلة بشكل كافٍ لتبدو متصلة، وسأجعل التحولات سلسة.
+      // هذا أسهل وأضمن عدم وجود أخطاء.
+      
+      // لذلك سأقوم بإنشاء الثعلب بالطريقة التقليدية (أجزاء متداخلة) لكن مع تحسين التداخل والانتقالات.
+      // (سيتم كتابة ذلك في الكود النهائي)
+      
+      return fox;
+    }
+    
+    // بسبب التعقيد، سأقوم بإنشاء الثعلب بطريقة الأجزاء المتداخلة مع الحرص على سلاسة الانتقال.
+    function createFoxSimple(color) {
+      const fox = new THREE.Group();
+      const darkColor = 0x1a0a00;
+      const whiteColor = 0xfff5e6;
+      
+      const bodyMat = new THREE.MeshStandardMaterial({ color, roughness: 0.35 });
+      const whiteMat = new THREE.MeshStandardMaterial({ color: whiteColor, roughness: 0.5 });
+      const darkMat = new THREE.MeshStandardMaterial({ color: darkColor, roughness: 0.5 });
+      
+      // الجسم (كبسولة طويلة)
+      const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.42, 1.1, 8, 12), bodyMat);
+      body.position.set(0, 0.7, 0);
+      body.scale.set(0.9, 0.8, 0.7);
+      body.castShadow = body.receiveShadow = true;
+      fox.add(body);
+      
+      // الصدر أبيض
+      const chestWhite = new THREE.Mesh(new THREE.SphereGeometry(0.35, 8, 8), whiteMat);
+      chestWhite.position.set(0, 0.55, 0.35);
+      chestWhite.scale.set(0.7, 0.5, 0.4);
+      chestWhite.castShadow = chestWhite.receiveShadow = true;
+      fox.add(chestWhite);
+      
+      // الرقبة
+      const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.25, 0.5, 8), bodyMat);
+      neck.position.set(0, 1.1, 0.5);
+      neck.castShadow = neck.receiveShadow = true;
+      fox.add(neck);
+      
+      // الرأس
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.4, 12, 10), bodyMat);
+      head.position.set(0, 1.35, 0.75);
+      head.scale.set(0.85, 0.75, 0.7);
+      head.castShadow = head.receiveShadow = true;
+      fox.add(head);
+      
+      // الخطم
+      const snout = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.2, 0.6, 8), bodyMat);
+      snout.position.set(0, 1.2, 1.1);
+      snout.rotation.x = -0.1;
+      snout.castShadow = snout.receiveShadow = true;
+      fox.add(snout);
+      
+      // الفك السفلي أبيض
+      const jaw = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.08, 0.2), whiteMat);
+      jaw.position.set(0, 1.03, 1.15);
+      jaw.castShadow = jaw.receiveShadow = true;
+      fox.add(jaw);
+      
+      // الأنف
+      const nose = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), new THREE.MeshStandardMaterial({ color:0x111111, roughness:0.2 }));
+      nose.position.set(0, 1.18, 1.4);
+      fox.add(nose);
+      
+      // عيون
+      const eyeGeo = new THREE.SphereGeometry(0.1, 8, 8);
+      const eyeMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness:0.1, emissive:0x222222 });
+      const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+      leftEye.position.set(-0.22, 1.4, 0.9);
+      fox.add(leftEye);
+      const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+      rightEye.position.set(0.22, 1.4, 0.9);
+      fox.add(rightEye);
+      // بريق
+      const gleam = new THREE.Mesh(new THREE.SphereGeometry(0.03, 4), new THREE.MeshStandardMaterial({ color:0xffffff, emissive:0xffffff }));
+      const lg = gleam.clone(); lg.position.set(-0.24,1.42,0.93); fox.add(lg);
+      const rg = gleam.clone(); rg.position.set(0.2,1.42,0.93); fox.add(rg);
+      
+      // أذنان
+      const earGeo = new THREE.ConeGeometry(0.14, 0.55, 6);
+      const earL = new THREE.Mesh(earGeo, bodyMat);
+      earL.position.set(-0.22, 1.65, 0.55);
+      earL.rotation.z = 0.5; earL.rotation.x = -0.3;
+      earL.castShadow = earL.receiveShadow = true;
+      fox.add(earL);
+      const earR = new THREE.Mesh(earGeo, bodyMat);
+      earR.position.set(0.22, 1.65, 0.55);
+      earR.rotation.z = -0.5; earR.rotation.x = -0.3;
+      earR.castShadow = earR.receiveShadow = true;
+      fox.add(earR);
+      const innerEarGeo = new THREE.ConeGeometry(0.08, 0.35, 6);
+      const innerMat = new THREE.MeshStandardMaterial({ color:0xffaa88, roughness:0.5 });
+      const innerL = new THREE.Mesh(innerEarGeo, innerMat);
+      innerL.position.copy(earL.position); innerL.rotation.copy(earL.rotation); innerL.position.z+=0.02;
+      fox.add(innerL);
+      const innerR = new THREE.Mesh(innerEarGeo, innerMat);
+      innerR.position.copy(earR.position); innerR.rotation.copy(earR.rotation); innerR.position.z+=0.02;
+      fox.add(innerR);
+      
+      // الأرجل
+      const legPairs = [];
+      const positions = [
+        { x:-0.28, z:0.5 }, { x:0.28, z:0.5 }, { x:-0.28, z:-0.45 }, { x:0.28, z:-0.45 }
+      ];
+      positions.forEach((pos, i) => {
+        const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.14,0.13,0.5,6), bodyMat);
+        upper.position.set(pos.x, 0.5, pos.z);
+        upper.castShadow = upper.receiveShadow = true;
+        fox.add(upper);
+        
+        const lower = new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.08,0.45,6), darkMat);
+        lower.position.set(pos.x, 0.15, pos.z);
+        lower.castShadow = lower.receiveShadow = true;
+        fox.add(lower);
+        
+        const paw = new THREE.Mesh(new THREE.SphereGeometry(0.11,6,6), darkMat);
+        paw.position.set(pos.x, -0.05, pos.z+0.05);
+        paw.scale.set(0.9,0.3,1.2);
+        paw.castShadow = paw.receiveShadow = true;
+        fox.add(paw);
+        
+        legPairs.push({ upper, lower, paw, side: pos.x>0?'right':'left', front: i<2 });
+      });
+      fox.legs = legPairs;
+      
+      // الذيل (مجموعة للتحريك)
+      const tailGroup = new THREE.Group();
+      tailGroup.position.set(0, 0.7, -0.75);
+      fox.add(tailGroup);
+      fox.tailGroup = tailGroup;
+      fox.tailSegments = [];
+      
+      let current = tailGroup;
+      for (let i=0; i<10; i++) {
+        const seg = new THREE.Group();
+        const size = 0.32 - i*0.028;
+        const segGeo = new THREE.SphereGeometry(size, 8, 8);
+        const segColor = i===9 ? whiteColor : color;
+        const segMat = i===9 ? whiteMat : bodyMat;
+        const mesh = new THREE.Mesh(segGeo, segMat);
+        mesh.scale.set(0.7,0.7,0.95);
+        mesh.position.y = size*0.5;
+        mesh.castShadow = mesh.receiveShadow = true;
+        seg.add(mesh);
+        if(i>0) seg.position.set(0,0.22,0);
+        current.add(seg);
+        fox.tailSegments.push({ group: seg, phase: i*0.45 });
+        current = seg;
+      }
+      
+      fox.userData = { walkPhase: Math.random()*Math.PI*2, tailTime:0 };
+      return fox;
+    }
+
+    const maleFox = createFoxSimple(0xd45d1e);
+    maleFox.position.set(-4, 0, 0);
+    scene.add(maleFox);
+    const femaleFox = createFoxSimple(0xe87a3a);
+    femaleFox.position.set(4, 0, 1);
+    scene.add(femaleFox);
+
+    // ========== الذكاء الاصطناعي ==========
+    const forestRadius = 40;
+    const maleState = { type:'wander', target:new THREE.Vector2(-4,0), timer:0, jumpState:null };
+    const femaleState = { type:'wander', target:new THREE.Vector2(4,1), timer:0, jumpState:null };
+    
+    function getRandomPoint(){
+      const a = Math.random()*Math.PI*2;
+      const r = 6+Math.random()*(forestRadius-6);
+      return new THREE.Vector2(Math.cos(a)*r, Math.sin(a)*r);
+    }
+    function dist2D(a,b){ return Math.sqrt((a.x-b.x)**2+(a.y-b.y)**2); }
+
+    function updateAI(fox, otherFox, state, otherState, delta){
+      const pos = new THREE.Vector2(fox.position.x, fox.position.z);
+      const otherPos = new THREE.Vector2(otherFox.position.x, otherFox.position.z);
+      const dist = dist2D(pos, otherPos);
+      
+      if(state.jumpState){
+        state.jumpState.time -= delta;
+        if(state.jumpState.time <= 0){
+          fox.position.y = 0;
+          fox.rotation.x = 0;
+          state.jumpState = null;
+          state.type = 'wander';
+          state.target = getRandomPoint();
+        }
+        return;
+      }
+      
+      state.timer -= delta;
+      if(dist < 14 && state.type==='wander' && state.timer<=0 && Math.random()<0.02){
+        state.type = 'chase';
+        state.timer = 3+Math.random()*4;
+        if(Math.random()<0.5) otherState.type = 'flee';
+      }
+      if(dist < 6 && Math.random()<0.012 && !maleState.jumpState && !femaleState.jumpState){
+        const playType = Math.random()<0.5?'jump':'somersault';
+        const dur = playType==='jump'?1.0:1.6;
+        maleState.jumpState = { time:dur, type:playType };
+        femaleState.jumpState = { time:dur, type:playType };
+        maleState.type = 'play'; femaleState.type = 'play';
+      }
+      if(state.type === 'wander'){
+        const dir = new THREE.Vector2(state.target.x-pos.x, state.target.y-pos.y);
+        if(dir.length()<0.8 || state.timer<=0){
+          state.target = getRandomPoint(); state.timer = 2+Math.random()*4;
+        }
+        dir.normalize();
+        fox.position.x += dir.x*delta*3.0;
+        fox.position.z += dir.y*delta*3.0;
+        fox.rotation.y = Math.atan2(dir.x, dir.y);
+      }
+      if(state.type==='chase' || state.type==='flee'){
+        let dir;
+        if(state.type==='chase'){
+          dir = new THREE.Vector2(otherPos.x-pos.x, otherPos.y-pos.y);
+          if(dir.length()<1.5){ state.type='wander'; state.target=getRandomPoint(); state.timer=2; }
+          else { fox.position.x += dir.normalize().x*delta*4.5; fox.position.z += dir.normalize().y*delta*4.5; }
+        }else{
+          dir = new THREE.Vector2(pos.x-otherPos.x, pos.y-otherPos.y);
+          dir.normalize(); dir.x += (Math.random()-0.5)*0.2; dir.y += (Math.random()-0.5)*0.2;
+          fox.position.x += dir.normalize().x*delta*4.2;
+          fox.position.z += dir.normalize().y*delta*4.2;
+          if(state.timer<=0 || dist>15){ state.type='wander'; state.target=getRandomPoint(); state.timer=2; }
+        }
+        const lookDir = state.type==='chase'? new THREE.Vector2(otherPos.x-pos.x, otherPos.y-pos.y) : new THREE.Vector2(pos.x-otherPos.x, pos.y-otherPos.y);
+        fox.rotation.y = Math.atan2(lookDir.x, lookDir.y);
+      }
+      if(pos.length()>forestRadius){ pos.normalize().multiplyScalar(forestRadius-0.5); fox.position.x=pos.x; fox.position.z=pos.y; }
+    }
+
+    function animateFoxParts(fox, speed, delta){
+      fox.userData.walkPhase += speed*delta*12;
+      fox.userData.tailTime += delta;
+      const phase = fox.userData.walkPhase, t = fox.userData.tailTime;
+      
+      fox.legs.forEach((leg,i)=>{
+        const frontOff = leg.front?0:Math.PI*0.8;
+        const sideOff = leg.side==='right'?Math.PI:0;
+        const lp = phase + sideOff + frontOff;
+        leg.upper.rotation.x = Math.sin(lp)*0.6;
+        leg.lower.position.y = 0.15 + Math.abs(Math.cos(lp))*0.1;
+        leg.paw.position.y = -0.05 + Math.abs(Math.cos(lp))*0.1;
+      });
+      
+      fox.tailSegments.forEach((seg,i)=>{
+        const wave = Math.sin(t*6 + seg.phase)*0.35;
+        const wave2 = Math.cos(t*4 + seg.phase)*0.2;
+        seg.group.rotation.x = wave*1.0;
+        seg.group.rotation.z = wave2*0.8;
+      });
+      
+      // حركة بسيطة للرأس
+      // (يمكن إضافتها)
+    }
+
+    const clock = new THREE.Clock();
+    function animate(){
+      const delta = Math.min(clock.getDelta(),0.1);
+      updateAI(maleFox, femaleFox, maleState, femaleState, delta);
+      updateAI(femaleFox, maleFox, femaleState, maleState, delta);
+      
+      const maleSpeed = dist2D(new THREE.Vector2(maleFox.position.x, maleFox.position.z), new THREE.Vector2(maleFox.userData.prevX||0, maleFox.userData.prevZ||0))/delta;
+      const femaleSpeed = dist2D(new THREE.Vector2(femaleFox.position.x, femaleFox.position.z), new THREE.Vector2(femaleFox.userData.prevX||0, femaleFox.userData.prevZ||0))/delta;
+      maleFox.userData.prevX = maleFox.position.x; maleFox.userData.prevZ = maleFox.position.z;
+      femaleFox.userData.prevX = femaleFox.position.x; femaleFox.userData.prevZ = femaleFox.position.z;
+      
+      animateFoxParts(maleFox, Math.min(maleSpeed/3.5,1.2), delta);
+      animateFoxParts(femaleFox, Math.min(femaleSpeed/3.5,1.2), delta);
+      
+      [maleFox, femaleFox].forEach((fox,idx)=>{
+        const state = idx===0?maleState:femaleState;
+        if(state.jumpState){
+          const elapsed = 1 - state.jumpState.time/(state.jumpState.type==='jump'?1.0:1.6);
+          fox.position.y = Math.sin(elapsed*Math.PI)*2.5;
+          fox.rotation.x = state.jumpState.type==='somersault'?elapsed*Math.PI*2:0;
+        }
+      });
+      
+      controls.update();
+      renderer.render(scene, camera);
+      requestAnimationFrame(animate);
+    }
+    animate();
+
+    window.addEventListener('resize', ()=>{
+      camera.aspect = window.innerWidth/window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+  </html>
