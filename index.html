@@ -548,7 +548,7 @@ function spawnRabbit() {
 }
 
 // إضافة 3 أرانب مبدئياً
-for (let i = 0; i < 99; i++) spawnRabbit();
+for (let i = 0; i < 2; i++) spawnRabbit();
 
 // ══════════════════════════════════════════════════════
 //  LEAF PARTICLES
@@ -605,12 +605,7 @@ renderer.domElement.addEventListener('touchend',e=>[...e.changedTouches].forEach
 // ══════════════════════════════════════════════════════
 //  AI للثعالب (مع اصطياد الأرانب)
 // ══════════════════════════════════════════════════════
-const behaviorLabels={
-  chase:'🏃 يطارد الثعلبة!', flee:'😱 الثعلبة تهرب!', circle:'🔄 يدوران معاً',
-  playbow:'🙇 يدعوها للعب', leap:'🦘 يقفز نحوها!', sniff:'👃 يشمّ الأرض',
-  zoomies:'⚡️ جري جنوني!', sitIdle:'😌 يستريح', nuzzle:'💕 لحظة حنان',
-  hunt:'🐇 يصطاد أرنباً!'
-};
+
 function makeState(b){return{beh:b,timer:0,dur:2+Math.random()*4,angle:Math.random()*Math.PI*2,target:new THREE.Vector3()};}
 let s1=makeState('chase'), s2=makeState('flee');
 const v1=new THREE.Vector3(), v2=new THREE.Vector3();
