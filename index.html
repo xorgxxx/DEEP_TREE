@@ -3,56 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>الشجرة السحرية - ثعالب مرحة</title>
+    <title>غابة الثعالب المرحة</title>
     <style>
-        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', 'Cairo', sans-serif; }
-        #info-panel {
-            position: absolute; top: 20px; left: 20px;
-            background: rgba(0,0,0,0.7); backdrop-filter: blur(8px);
-            padding: 12px 24px; border-radius: 16px; color: white; direction: rtl;
-            z-index: 20; pointer-events: none; border-right: 4px solid #f4a261;
-        }
-        #controls {
-            position: absolute; bottom: 20px; left: 20px; right: 20px;
-            background: rgba(20,20,30,0.85); backdrop-filter: blur(10px);
-            border-radius: 32px; padding: 12px 20px; display: flex; flex-wrap: wrap;
-            justify-content: center; gap: 12px; z-index: 30; pointer-events: auto;
-        }
-        button {
-            background: #2c6e3c; border: none; color: white; padding: 8px 20px;
-            border-radius: 40px; cursor: pointer; font-weight: bold; transition: 0.2s;
-        }
-        button:hover { background: #3e8e50; transform: scale(1.02); }
-        .status-badge {
-            background: #1e2a23; padding: 6px 15px; border-radius: 40px;
-            font-size: 13px; display: inline-flex; align-items: center; gap: 8px;
-        }
-        #messageBox {
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: #2c2418e6; backdrop-filter: blur(12px); border-radius: 28px;
-            padding: 20px 28px; color: #ffecb3; max-width: 280px; text-align: center;
-            z-index: 100; border: 1px solid #ffb347; display: none;
-        }
-        #closeMsgBtn { background: #b96f20; margin-top: 15px; }
-        @media (max-width: 650px) { button { padding: 6px 12px; } }
+        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        /* لا توجد أي عناصر إضافية - فقط المشهد التفاعلي */
     </style>
 </head>
 <body>
-    <div id="info-panel">🌳 الشجرة السحرية | اضغط على أي ورقة لرؤية/تعديل معلوماتها 💾</div>
-    <div id="controls">
-        <button id="addLeafBtn">🍃 إضافة ورقة جديدة</button>
-        <button id="resetCamBtn">🔄 إعادة ضبط الكاميرا</button>
-        <button id="windToggleBtn">💨 تشغيل/إيقاف الرياح</button>
-        <div class="status-badge" id="windStatus">🌬️ الرياح: نشطة</div>
-        <div class="status-badge">🦊 ثعلبان يلعبان 🦊</div>
-    </div>
-    <div id="messageBox"><div id="msgText"></div><button id="closeMsgBtn">✖️ إغلاق</button></div>
-
     <script type="importmap">
         {
             "imports": {
                 "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/",
+                "gsap": "https://unpkg.com/gsap@3.12.5/index.js"
             }
         }
     </script>
@@ -60,16 +23,16 @@
     <script type="module">
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+        import gsap from 'gsap';
 
         // --- إعداد المشهد ---
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x071a2b);
-        scene.fog = new THREE.FogExp2(0x071a2b, 0.006);
+        scene.background = new THREE.Color(0x0a2f1f); // لون غابة جميل
+        scene.fog = new THREE.FogExp2(0x0a2f1f, 0.008);
 
-        const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(6.5, 5.2, 8);
-        camera.lookAt(0, 2.8, 0);
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(7, 5, 9);
+        camera.lookAt(0, 2, 0);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -77,200 +40,144 @@
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         document.body.appendChild(renderer.domElement);
 
-        const labelRenderer = new CSS2DRenderer();
-        labelRenderer.setSize(window.innerWidth, window.innerHeight);
-        labelRenderer.domElement.style.position = 'absolute';
-        labelRenderer.domElement.style.top = '0px';
-        labelRenderer.domElement.style.left = '0px';
-        labelRenderer.domElement.style.pointerEvents = 'none';
-        document.body.appendChild(labelRenderer.domElement);
-
+        // التحكم بالكاميرا (تفاعل بالماوس فقط)
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
-        controls.dampingFactor = 0.06;
+        controls.dampingFactor = 0.05;
         controls.autoRotate = false;
         controls.enableZoom = true;
-        controls.zoomSpeed = 1.3;
-        controls.target.set(0, 2.8, 0);
+        controls.enablePan = true;
+        controls.zoomSpeed = 1.2;
+        controls.target.set(0, 2.5, 0);
 
-        // --- إضاءة محسنة لإبراز الثعالب ---
-        const ambient = new THREE.AmbientLight(0x4a5b6e);
-        scene.add(ambient);
-        const sunLight = new THREE.DirectionalLight(0xffeebb, 1.3);
-        sunLight.position.set(6, 12, 4);
-        sunLight.castShadow = true;
-        sunLight.receiveShadow = true;
-        sunLight.shadow.mapSize.width = 1024;
-        sunLight.shadow.mapSize.height = 1024;
-        scene.add(sunLight);
-        const fillLight = new THREE.PointLight(0xa5c9ff, 0.45);
-        fillLight.position.set(1, 3, 2);
+        // --- إضاءة طبيعية ---
+        const ambientLight = new THREE.AmbientLight(0x3c5e4c);
+        scene.add(ambientLight);
+        const dirLight = new THREE.DirectionalLight(0xfff5c0, 1.2);
+        dirLight.position.set(5, 10, 4);
+        dirLight.castShadow = true;
+        dirLight.receiveShadow = true;
+        dirLight.shadow.mapSize.width = 1024;
+        dirLight.shadow.mapSize.height = 1024;
+        dirLight.shadow.camera.near = 0.5;
+        dirLight.shadow.camera.far = 20;
+        dirLight.shadow.camera.left = -7;
+        dirLight.shadow.camera.right = 7;
+        dirLight.shadow.camera.top = 7;
+        dirLight.shadow.camera.bottom = -7;
+        scene.add(dirLight);
+        
+        const backLight = new THREE.PointLight(0xc9a87c, 0.5);
+        backLight.position.set(-3, 3, -4);
+        scene.add(backLight);
+        
+        const fillLight = new THREE.PointLight(0x88aaff, 0.3);
+        fillLight.position.set(1, 2, 2);
         scene.add(fillLight);
-        const backWarm = new THREE.PointLight(0xd9a066, 0.55);
-        backWarm.position.set(-3, 2.5, -4);
-        scene.add(backWarm);
-        // إضاءة إضافية من الأمام للثعالب
-        const foxLight = new THREE.SpotLight(0xffaa66, 0.4);
-        foxLight.position.set(0, 1.5, 3);
-        scene.add(foxLight);
 
-        // أرضية
+        // أرضية عشبية واسعة
         const ground = new THREE.Mesh(
-            new THREE.PlaneGeometry(18, 18),
-            new THREE.MeshStandardMaterial({ color: 0x418c34, roughness: 0.85, metalness: 0.05 })
+            new THREE.PlaneGeometry(22, 22),
+            new THREE.MeshStandardMaterial({ color: 0x4c9e3a, roughness: 0.9, metalness: 0.05 })
         );
-        ground.rotation.x = -Math.PI/2;
-        ground.position.y = -0.25;
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = -0.3;
         ground.receiveShadow = true;
         scene.add(ground);
 
-        // --- الشجرة (كما هي من قبل ولكن أكبر قليلاً) ---
-        const treeGroup = new THREE.Group();
-        const trunkMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.6 });
-        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 1.0, 2.2, 10), trunkMat);
-        trunk.position.y = 0.9;
-        trunk.castShadow = true;
-        treeGroup.add(trunk);
+        // حشائش صغيرة متناثرة
+        const grassMat = new THREE.MeshStandardMaterial({ color: 0x6bb55a });
+        for (let i = 0; i < 800; i++) {
+            const blade = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.07, 0.1 + Math.random()*0.2, 3), grassMat);
+            const angle = Math.random() * Math.PI * 2;
+            const rad = 2 + Math.random() * 8;
+            const x = Math.cos(angle) * rad;
+            const z = Math.sin(angle) * rad;
+            blade.position.set(x, -0.27, z);
+            blade.castShadow = true;
+            scene.add(blade);
+        }
 
-        const branchMat = new THREE.MeshStandardMaterial({ color: 0xa57542 });
-        const branchParams = [
-            { pos: [0.75, 1.5, 0.4], rot: [0.1, 0.5, 0.5], scale: [0.45, 1.1, 0.45] },
-            { pos: [-0.7, 1.6, -0.5], rot: [0, -0.4, 0.4], scale: [0.48, 1.0, 0.48] },
-            { pos: [0.4, 2.0, 0.9], rot: [0.2, 0.7, 0.3], scale: [0.4, 0.9, 0.4] },
-            { pos: [-0.5, 2.1, -0.8], rot: [-0.1, -0.8, 0.4], scale: [0.42, 0.95, 0.42] },
-            { pos: [0.8, 2.4, -0.3], rot: [0.1, 0.9, 0.2], scale: [0.38, 0.85, 0.38] }
-        ];
-        const branchMeshes = [];
-        branchParams.forEach(b => {
-            const branch = new THREE.Mesh(new THREE.CylinderGeometry(b.scale[0], b.scale[2], b.scale[1], 6), branchMat);
-            branch.position.set(b.pos[0], b.pos[1], b.pos[2]);
-            branch.rotation.set(b.rot[0], b.rot[1], b.rot[2]);
-            branch.castShadow = true;
-            treeGroup.add(branch);
-            branchMeshes.push(branch);
-        });
-
-        // الأوراق (نفس النظام السابق مع حفظ المعلومات)
-        const leafSpheres = [];
-        const leafInfoMap = new Map();
-        function saveLeavesToLocal() {
-            const store = [];
-            leafSpheres.forEach(sp => {
-                const info = leafInfoMap.get(sp.uuid) || { text: "ورقة جديدة بدون معلومات" };
-                store.push({ id: sp.uuid, text: info.text, posX: sp.position.x, posY: sp.position.y, posZ: sp.position.z });
-            });
-            localStorage.setItem('treeLeavesData', JSON.stringify(store));
-        }
-        function loadLeavesFromLocal() {
-            const raw = localStorage.getItem('treeLeavesData');
-            if (!raw) return;
-            try {
-                const data = JSON.parse(raw);
-                data.forEach(item => {
-                    const sphere = leafSpheres.find(s => s.uuid === item.id);
-                    if (sphere) {
-                        let infoText = item.text || "✨ سر الطبيعة ✨";
-                        leafInfoMap.set(sphere.uuid, { text: infoText });
-                        sphere.userData.infoText = infoText;
-                    }
-                });
-            } catch(e) {}
-        }
-        function createLeafAt(x, y, z, customInfo = null) {
-            const size = 0.48 + Math.random() * 0.18;
-            const leafMat = new THREE.MeshStandardMaterial({ color: 0x5cad3a, roughness: 0.35, emissive: 0x226622, emissiveIntensity: 0.1 });
-            const leaf = new THREE.Mesh(new THREE.SphereGeometry(size, 14, 14), leafMat);
-            leaf.position.set(x, y, z);
-            leaf.castShadow = true;
-            leaf.userData = { isLeaf: true, infoText: customInfo || "📜 اضغط لكتابة ملاحظة" };
-            treeGroup.add(leaf);
-            leafSpheres.push(leaf);
-            leafInfoMap.set(leaf.uuid, { text: leaf.userData.infoText });
-            return leaf;
-        }
-        const baseLeafPositions = [
-            [0, 2.4, 0], [0.65, 2.6, 0.4], [-0.6, 2.7, -0.5], [0.4, 2.9, 0.7], [-0.4, 3.0, -0.3],
-            [0.85, 2.3, -0.3], [-0.85, 2.4, 0.2], [0.2, 3.3, 0.3], [-0.2, 3.4, 0.4], [0.6, 3.0, -0.6],
-            [0, 3.6, 0], [0.5, 2.0, 1.0], [-0.5, 2.1, -1.0], [0.9, 1.9, 0.7], [-0.9, 2.1, -0.7],
-            [1.0, 2.7, 0.1], [-1.0, 2.8, -0.1], [0.3, 3.8, 0.2], [-0.3, 3.9, -0.2]
-        ];
-        baseLeafPositions.forEach(pos => createLeafAt(pos[0], pos[1], pos[2], "🍃 حكمة الشجرة: 'ازرع جميلاً يثمر خيراً'"));
-        for (let i = 0; i < 45; i++) {
-            const ang = Math.random() * Math.PI * 2;
-            const rad = 0.9 + Math.random() * 1.7;
-            const yoff = 2.0 + Math.random() * 2.1;
-            createLeafAt(Math.cos(ang)*rad, yoff, Math.sin(ang)*rad, "🌟 سر صغير ينتظر من يكتشفه");
-        }
-        loadLeavesFromLocal();
-        leafSpheres.forEach(sp => {
-            const stored = leafInfoMap.get(sp.uuid);
-            if (stored) sp.userData.infoText = stored.text;
-            else sp.userData.infoText = "📖 اضغط لتحرير المذكرة";
-        });
-        scene.add(treeGroup);
-
-        // --- نافذة المعلومات ---
-        const msgBox = document.getElementById('messageBox');
-        const msgTextDiv = document.getElementById('msgText');
-        const closeMsg = document.getElementById('closeMsgBtn');
-        let currentLeaf = null;
-        function showMessageForLeaf(leaf) {
-            msgTextDiv.innerText = `📜 المعلومة المخبأة:\n\n${leaf.userData.infoText}\n\n✏️ يمكنك تعديلها الآن`;
-            msgBox.style.display = 'block';
-            currentLeaf = leaf;
-        }
-        closeMsg.addEventListener('click', () => {
-            if (currentLeaf) {
-                const newText = prompt("✏️ حرّر المعلومة:", currentLeaf.userData.infoText);
-                if (newText !== null && newText.trim() !== "") {
-                    currentLeaf.userData.infoText = newText.trim();
-                    leafInfoMap.set(currentLeaf.uuid, { text: newText.trim() });
-                    saveLeavesToLocal();
-                }
-            }
-            msgBox.style.display = 'none';
-            currentLeaf = null;
-        });
-        const raycaster = new THREE.Raycaster();
-        const mouse = new THREE.Vector2();
-        window.addEventListener('click', (event) => {
-            mouse.x = (event.clientX / renderer.domElement.clientWidth) * 2 - 1;
-            mouse.y = -(event.clientY / renderer.domElement.clientHeight) * 2 + 1;
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(leafSpheres);
-            if (intersects.length) showMessageForLeaf(intersects[0].object);
-        });
-        document.getElementById('addLeafBtn').addEventListener('click', () => {
-            const info = prompt("المعلومة السرية للورقة الجديدة:", "🍀 حكمة جديدة");
-            const ang = Math.random() * Math.PI * 2;
-            const rad = 1.1 + Math.random() * 1.6;
-            const yPos = 1.9 + Math.random() * 2.3;
-            const newLeaf = createLeafAt(Math.cos(ang)*rad, yPos, Math.sin(ang)*rad, info || "💚 ورقة جديدة");
-            leafInfoMap.set(newLeaf.uuid, { text: newLeaf.userData.infoText });
-            saveLeavesToLocal();
-        });
-        document.getElementById('resetCamBtn').addEventListener('click', () => {
-            camera.position.set(6.5, 5.2, 8);
-            controls.target.set(0, 2.8, 0);
-            controls.update();
-        });
-
-        // ==================== الثعالب المتطورة ====================
-        // دالة لإنشاء ثعلب واضح وجميل مع تفاصيل
-        function createAdvancedFox(colorMain, colorAccent, isMale = true) {
+        // --- دالة لإنشاء شجرة كاملة (جذع + فروع + أوراق) ---
+        function createTree(x, z, scaleFactor = 1) {
             const group = new THREE.Group();
             
-            // الجسم (بيضاوي بشكل أفضل)
+            // الجذع
+            const trunkMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.6 });
+            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.7 * scaleFactor, 0.95 * scaleFactor, 2.1 * scaleFactor, 8), trunkMat);
+            trunk.position.y = 0.9 * scaleFactor;
+            trunk.castShadow = true;
+            trunk.receiveShadow = true;
+            group.add(trunk);
+            
+            // فروع
+            const branchMat = new THREE.MeshStandardMaterial({ color: 0xa57542 });
+            const branches = [
+                { pos: [0.7, 1.5, 0.4], rot: [0.1, 0.5, 0.5], scale: [0.4, 1.0, 0.4] },
+                { pos: [-0.65, 1.6, -0.5], rot: [0, -0.4, 0.4], scale: [0.43, 0.95, 0.43] },
+                { pos: [0.4, 2.0, 0.85], rot: [0.2, 0.7, 0.3], scale: [0.38, 0.85, 0.38] },
+                { pos: [-0.5, 2.1, -0.75], rot: [-0.1, -0.7, 0.4], scale: [0.4, 0.9, 0.4] },
+                { pos: [0.75, 2.4, -0.3], rot: [0.1, 0.9, 0.2], scale: [0.35, 0.8, 0.35] }
+            ];
+            branches.forEach(b => {
+                const branch = new THREE.Mesh(new THREE.CylinderGeometry(b.scale[0] * scaleFactor, b.scale[2] * scaleFactor, b.scale[1] * scaleFactor, 5), branchMat);
+                branch.position.set(b.pos[0] * scaleFactor, b.pos[1] * scaleFactor, b.pos[2] * scaleFactor);
+                branch.rotation.set(b.rot[0], b.rot[1], b.rot[2]);
+                branch.castShadow = true;
+                group.add(branch);
+            });
+            
+            // الأوراق
+            const leafMat = new THREE.MeshStandardMaterial({ color: 0x5cad3a, roughness: 0.4, emissive: 0x226622, emissiveIntensity: 0.08 });
+            const leafPositions = [
+                [0, 2.3, 0], [0.6, 2.5, 0.4], [-0.55, 2.6, -0.45], [0.35, 2.8, 0.65], [-0.35, 2.9, -0.3],
+                [0.8, 2.2, -0.25], [-0.75, 2.3, 0.2], [0.2, 3.2, 0.3], [-0.2, 3.3, 0.35], [0.55, 2.9, -0.55],
+                [0, 3.5, 0], [0.45, 2.0, 0.95], [-0.45, 2.1, -0.95]
+            ];
+            leafPositions.forEach(pos => {
+                const size = (0.45 + Math.random() * 0.2) * scaleFactor;
+                const leaf = new THREE.Mesh(new THREE.SphereGeometry(size, 12, 12), leafMat);
+                leaf.position.set(pos[0] * scaleFactor, pos[1] * scaleFactor, pos[2] * scaleFactor);
+                leaf.castShadow = true;
+                group.add(leaf);
+            });
+            
+            // أوراق صغيرة إضافية
+            for (let i = 0; i < 35; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const rad = 0.8 + Math.random() * 1.5;
+                const yoff = 1.8 + Math.random() * 2.0;
+                const tinyLeaf = new THREE.Mesh(new THREE.SphereGeometry(0.18 * scaleFactor, 6, 6), leafMat);
+                tinyLeaf.position.set(Math.cos(angle) * rad * scaleFactor, yoff * scaleFactor, Math.sin(angle) * rad * scaleFactor);
+                tinyLeaf.castShadow = true;
+                group.add(tinyLeaf);
+            }
+            
+            group.position.set(x, 0, z);
+            return group;
+        }
+        
+        // إضافة شجرتين
+        const tree1 = createTree(-2.5, -1.8, 1.0);
+        const tree2 = createTree(2.8, 1.5, 1.1);
+        scene.add(tree1);
+        scene.add(tree2);
+        
+        // --- إنشاء ثعلب متطور وجميل ---
+        function createFox(colorMain, colorAccent) {
+            const group = new THREE.Group();
+            
+            // الجسم
             const bodyGeo = new THREE.SphereGeometry(0.5, 24, 24);
-            const bodyMat = new THREE.MeshStandardMaterial({ color: colorMain, roughness: 0.3, metalness: 0.1 });
+            const bodyMat = new THREE.MeshStandardMaterial({ color: colorMain, roughness: 0.3 });
             const body = new THREE.Mesh(bodyGeo, bodyMat);
             body.scale.set(1.2, 0.8, 1.6);
             body.position.y = 0.2;
             body.castShadow = true;
             group.add(body);
             
-            // الصدر بلون أفتح
-            const chestMat = new THREE.MeshStandardMaterial({ color: colorAccent, roughness: 0.4 });
+            // الصدر بلون فاتح
+            const chestMat = new THREE.MeshStandardMaterial({ color: colorAccent });
             const chest = new THREE.Mesh(new THREE.SphereGeometry(0.4, 20, 20), chestMat);
             chest.scale.set(0.9, 0.7, 0.8);
             chest.position.set(0, 0.2, 0.65);
@@ -278,32 +185,31 @@
             group.add(chest);
             
             // الرأس
-            const headMat = new THREE.MeshStandardMaterial({ color: colorMain, roughness: 0.2 });
+            const headMat = new THREE.MeshStandardMaterial({ color: colorMain });
             const head = new THREE.Mesh(new THREE.SphereGeometry(0.45, 32, 32), headMat);
             head.position.set(0, 0.55, 0.85);
             head.castShadow = true;
             group.add(head);
             
-            // الأنف (أسود لامع)
-            const noseMat = new THREE.MeshStandardMaterial({ color: 0x111111, emissive: 0x222222 });
-            const nose = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), noseMat);
+            // الأنف
+            const nose = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), new THREE.MeshStandardMaterial({ color: 0x111111 }));
             nose.position.set(0, 0.48, 1.12);
             group.add(nose);
             
-            // العيون (بيضاء مع بؤبؤ أسود)
-            const eyeWhiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
-            const eyePupilMat = new THREE.MeshStandardMaterial({ color: 0x000000 });
-            const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.09, 24, 24), eyeWhiteMat);
+            // العيون
+            const eyeWhite = new THREE.MeshStandardMaterial({ color: 0xffffff });
+            const eyePupil = new THREE.MeshStandardMaterial({ color: 0x000000 });
+            const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.09, 24, 24), eyeWhite);
             leftEye.position.set(-0.18, 0.68, 1.02);
-            const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.09, 24, 24), eyeWhiteMat);
+            const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.09, 24, 24), eyeWhite);
             rightEye.position.set(0.18, 0.68, 1.02);
-            const leftPupil = new THREE.Mesh(new THREE.SphereGeometry(0.05, 16, 16), eyePupilMat);
+            const leftPupil = new THREE.Mesh(new THREE.SphereGeometry(0.05, 16, 16), eyePupil);
             leftPupil.position.set(-0.18, 0.66, 1.1);
-            const rightPupil = new THREE.Mesh(new THREE.SphereGeometry(0.05, 16, 16), eyePupilMat);
+            const rightPupil = new THREE.Mesh(new THREE.SphereGeometry(0.05, 16, 16), eyePupil);
             rightPupil.position.set(0.18, 0.66, 1.1);
             group.add(leftEye, rightEye, leftPupil, rightPupil);
             
-            // الأذنان (كبيرتان وواضحتان)
+            // الأذنان
             const earMat = new THREE.MeshStandardMaterial({ color: colorMain });
             const earInnerMat = new THREE.MeshStandardMaterial({ color: 0xffaa88 });
             const leftEar = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.45, 12), earMat);
@@ -318,23 +224,22 @@
             rightInner.position.set(0.28, 0.94, 0.85);
             group.add(leftEar, rightEar, leftInner, rightInner);
             
-            // الذيل (كثيف ومنحني)
+            // الذيل
             const tailMat = new THREE.MeshStandardMaterial({ color: colorMain });
             const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.1, 0.8, 8), tailMat);
             tail.position.set(0, 0.1, -0.95);
             tail.rotation.x = 0.7;
             tail.rotation.z = 0.4;
             tail.castShadow = true;
-            // طرف الذيل أبيض
             const tailTip = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), new THREE.MeshStandardMaterial({ color: 0xffdd88 }));
             tailTip.position.set(0.15, -0.05, -1.28);
             group.add(tail, tailTip);
             
-            // الأرجل (أعمدة قصيرة)
-            const legMat = new THREE.MeshStandardMaterial({ color: colorMain });
+            // الأرجل
+            const legMatLeg = new THREE.MeshStandardMaterial({ color: colorMain });
             const legPositions = [[-0.35, -0.1, 0.55], [0.35, -0.1, 0.55], [-0.35, -0.1, -0.3], [0.35, -0.1, -0.3]];
             legPositions.forEach(pos => {
-                const leg = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.3, 0.22), legMat);
+                const leg = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.3, 0.22), legMatLeg);
                 leg.position.set(pos[0], pos[1], pos[2]);
                 leg.castShadow = true;
                 group.add(leg);
@@ -344,205 +249,132 @@
             return group;
         }
         
-        const fox1 = createAdvancedFox(0xd94f1a, 0xffaa77, true);  // ثعلب أحمر ناري
-        const fox2 = createAdvancedFox(0xc08050, 0xffcc99, false); // ثعلبة بلون كهرماني فاتح
-        scene.add(fox1);
-        scene.add(fox2);
+        const foxOrange = createFox(0xd94f1a, 0xffaa77);
+        const foxBeige = createFox(0xc08050, 0xffcc99);
+        scene.add(foxOrange);
+        scene.add(foxBeige);
         
-        // وضع الثعالب في مواقع أولية
-        fox1.position.set(2.2, -0.2, 1.8);
-        fox2.position.set(-1.5, -0.2, 2.0);
+        // وضع البداية
+        foxOrange.position.set(1.2, -0.2, 1.5);
+        foxBeige.position.set(-1.0, -0.2, -1.2);
         
-        // --- نظام حركة عشوائي مع لعب وتفاعل ---
-        let foxState = { 
-            t1: 0, t2: 0,
-            target1: { x: 2.2, z: 1.8 }, target2: { x: -1.5, z: 2.0 },
-            playing: false, playTimer: 0,
-            jump1: 0, jump2: 0
-        };
+        // --- نظام الجري والركض المستمر مع تغيير عشوائي للأهداف ---
+        // مجموعة نقاط حول الشجرتين (مسار مفتوح)
+        const waypoints = [
+            { x: -2.0, z: -1.5 }, { x: -1.5, z: 0.5 }, { x: 0.5, z: 1.8 }, { x: 2.2, z: 1.0 },
+            { x: 2.5, z: -0.5 }, { x: 1.5, z: -1.8 }, { x: 0, z: -2.0 }, { x: -2.5, z: 0.8 },
+            { x: -1.2, z: 2.0 }, { x: 1.0, z: 2.2 }, { x: 2.8, z: -1.0 }, { x: -2.2, z: -1.0 },
+            { x: 0, z: 1.5 }, { x: -0.5, z: -1.5 }
+        ];
         
-        // حركة عشوائية بتغيير الأهداف كل عدة ثوانٍ
+        // لكل ثعلب هدف حالي ومؤقت لتغييره
+        let fox1Target = { ...waypoints[0] };
+        let fox2Target = { ...waypoints[1] };
+        let fox1Speed = 2.2; // سرعة الجري
+        let fox2Speed = 2.4;
+        
+        // تغيير الأهداف بشكل عشوائي كل 2-4 ثوانٍ
         setInterval(() => {
-            if (!foxState.playing) {
-                // أهداف عشوائية ضمن منطقة حول الشجرة
-                const angle1 = Math.random() * Math.PI * 2;
-                const radius1 = 1.8 + Math.random() * 2.5;
-                foxState.target1 = { x: Math.cos(angle1) * radius1, z: Math.sin(angle1) * radius1 };
-                const angle2 = Math.random() * Math.PI * 2;
-                const radius2 = 1.8 + Math.random() * 2.5;
-                foxState.target2 = { x: Math.cos(angle2) * radius2, z: Math.sin(angle2) * radius2 };
-            }
-        }, 4000);
+            const newTarget1 = waypoints[Math.floor(Math.random() * waypoints.length)];
+            const newTarget2 = waypoints[Math.floor(Math.random() * waypoints.length)];
+            fox1Target = { x: newTarget1.x, z: newTarget1.z };
+            fox2Target = { x: newTarget2.x, z: newTarget2.z };
+        }, 2800);
         
-        // احتمالية بدء اللعب (يقتربان من بعضهما ويقفزان)
+        // قفزات عشوائية أثناء الجري (لمسة مرحة)
         setInterval(() => {
-            if (!foxState.playing && Math.random() < 0.35) {
-                foxState.playing = true;
-                foxState.playTimer = 3.5; // مدة اللعب 3.5 ثانية
-                // يجعل الثعالب تتجه نحو نقطة وسط بينهما
-                const midX = (fox1.position.x + fox2.position.x) / 2;
-                const midZ = (fox1.position.z + fox2.position.z) / 2;
-                foxState.target1 = { x: midX + (Math.random() - 0.5)*1.2, z: midZ + (Math.random() - 0.5)*1.2 };
-                foxState.target2 = { x: midX + (Math.random() - 0.5)*1.2, z: midZ + (Math.random() - 0.5)*1.2 };
+            if (Math.random() > 0.4) {
+                gsap.to(foxOrange.position, { duration: 0.2, y: 0.15, ease: "power1", yoyo: true, repeat: 1 });
             }
-        }, 8000);
-        
-        let lastTime = performance.now();
-        
-        function animateFoxes(deltaTime) {
-            const speed = 1.8 * deltaTime; // سرعة الحركة
-            
-            if (foxState.playing) {
-                foxState.playTimer -= deltaTime;
-                if (foxState.playTimer <= 0) {
-                    foxState.playing = false;
-                    // بعد اللعب، يذهبان إلى أهداف عشوائية جديدة
-                    foxState.target1 = { x: (Math.random() - 0.5)*4, z: (Math.random() - 0.5)*3 + 1 };
-                    foxState.target2 = { x: (Math.random() - 0.5)*4, z: (Math.random() - 0.5)*3 + 1 };
-                } else {
-                    // أثناء اللعب: يقفزان بشكل متكرر
-                    foxState.jump1 += deltaTime;
-                    foxState.jump2 += deltaTime;
-                    if (foxState.jump1 > 0.6) {
-                        foxState.jump1 = 0;
-                        // قفزة صغيرة للثعلب الأول
-                        gsap.to(fox1.position, { duration: 0.2, y: 0.1, ease: "power1", yoyo: true, repeat: 1 });
-                    }
-                    if (foxState.jump2 > 0.5) {
-                        foxState.jump2 = 0;
-                        gsap.to(fox2.position, { duration: 0.2, y: 0.1, ease: "power1", yoyo: true, repeat: 1 });
-                    }
-                }
-            } else {
-                // حركة عشوائية طبيعية مع قفزات نادرة
-                if (Math.random() < 0.01) {
-                    gsap.to(fox1.position, { duration: 0.2, y: 0.12, ease: "backOut", yoyo: true, repeat: 1 });
-                }
-                if (Math.random() < 0.01) {
-                    gsap.to(fox2.position, { duration: 0.2, y: 0.12, ease: "backOut", yoyo: true, repeat: 1 });
-                }
+            if (Math.random() > 0.4) {
+                gsap.to(foxBeige.position, { duration: 0.2, y: 0.15, ease: "power1", yoyo: true, repeat: 1 });
             }
-            
-            // تحريك الثعلب 1 نحو هدفه
-            const dx1 = foxState.target1.x - fox1.position.x;
-            const dz1 = foxState.target1.z - fox1.position.z;
+        }, 1800);
+        
+        // وظيفة تحديث حركة الثعالب (ركض مستمر)
+        let lastTimestamp = performance.now();
+        function updateFoxes(deltaTime) {
+            // الثعلب الأول
+            const dx1 = fox1Target.x - foxOrange.position.x;
+            const dz1 = fox1Target.z - foxOrange.position.z;
             const dist1 = Math.hypot(dx1, dz1);
             if (dist1 > 0.1) {
-                const move = Math.min(speed, dist1);
-                fox1.position.x += (dx1 / dist1) * move;
-                fox1.position.z += (dz1 / dist1) * move;
-                // توجيه الثعلب باتجاه الحركة
+                const move = Math.min(fox1Speed * deltaTime, dist1);
+                foxOrange.position.x += (dx1 / dist1) * move;
+                foxOrange.position.z += (dz1 / dist1) * move;
+                // توجيه الثعلب نحو اتجاه الحركة
                 const angle1 = Math.atan2(dx1, dz1);
-                fox1.rotation.y = angle1;
+                foxOrange.rotation.y = angle1;
+            } else {
+                // إذا وصل للهدف، انتقل فوراً لهدف عشوائي آخر (لتجنب التوقف)
+                const newTarget = waypoints[Math.floor(Math.random() * waypoints.length)];
+                fox1Target = { x: newTarget.x, z: newTarget.z };
             }
             
-            const dx2 = foxState.target2.x - fox2.position.x;
-            const dz2 = foxState.target2.z - fox2.position.z;
+            // الثعلب الثاني
+            const dx2 = fox2Target.x - foxBeige.position.x;
+            const dz2 = fox2Target.z - foxBeige.position.z;
             const dist2 = Math.hypot(dx2, dz2);
             if (dist2 > 0.1) {
-                const move = Math.min(speed, dist2);
-                fox2.position.x += (dx2 / dist2) * move;
-                fox2.position.z += (dz2 / dist2) * move;
+                const move = Math.min(fox2Speed * deltaTime, dist2);
+                foxBeige.position.x += (dx2 / dist2) * move;
+                foxBeige.position.z += (dz2 / dist2) * move;
                 const angle2 = Math.atan2(dx2, dz2);
-                fox2.rotation.y = angle2;
-            }
-            
-            // إذا كانا في وضع اللعب وكانا قريبين جداً، قفزات سريعة
-            if (foxState.playing && Math.hypot(fox1.position.x - fox2.position.x, fox1.position.z - fox2.position.z) < 1.2) {
-                if (Math.random() < 0.1) {
-                    gsap.to(fox1.position, { duration: 0.15, y: 0.15, ease: "power2", yoyo: true, repeat: 1 });
-                    gsap.to(fox2.position, { duration: 0.15, y: 0.15, ease: "power2", yoyo: true, repeat: 1 });
-                }
+                foxBeige.rotation.y = angle2;
+            } else {
+                const newTarget = waypoints[Math.floor(Math.random() * waypoints.length)];
+                fox2Target = { x: newTarget.x, z: newTarget.z };
             }
             
             // إبقاء الثعالب على الأرض
-            fox1.position.y = -0.2;
-            fox2.position.y = -0.2;
+            foxOrange.position.y = -0.2;
+            foxBeige.position.y = -0.2;
         }
         
-        // استيراد GSAP للقفزات السلسة
-        import gsap from 'https://unpkg.com/gsap@3.12.5/index.js';
-        
-        // --- الرياح وباقي العناصر ---
-        let windEnabled = true;
-        const windBtn = document.getElementById('windToggleBtn');
-        const windStatusSpan = document.getElementById('windStatus');
-        windBtn.addEventListener('click', () => {
-            windEnabled = !windEnabled;
-            windStatusSpan.innerHTML = windEnabled ? '🌬️ الرياح: نشطة' : '🍃 الرياح: ساكنة';
-        });
-        
-        const originalLeafPos = leafSpheres.map(l => l.position.clone());
-        const originalBranchPos = branchMeshes.map(b => b.position.clone());
-        const originalTrunkPos = trunk.position.clone();
-        let time = 0;
-        
-        // بطاقة معلقة
-        const tagDiv = document.createElement('div');
-        tagDiv.textContent = '🌿 شجرة الأسرار & ثعالب مرحة 🌿';
-        tagDiv.style.backgroundColor = '#1f2a1bdd'; tagDiv.style.color = '#f9e0a0';
-        tagDiv.style.padding = '5px 15px'; tagDiv.style.borderRadius = '40px';
-        const labelObj = new CSS2DObject(tagDiv);
-        labelObj.position.set(0, 4.2, 0);
-        scene.add(labelObj);
-        
-        // نجوم
-        const starGeo = new THREE.BufferGeometry();
-        const starCount = 1200;
+        // --- نجوم متحركة للزينة ---
+        const starGeometry = new THREE.BufferGeometry();
+        const starCount = 1000;
         const starPositions = new Float32Array(starCount * 3);
         for (let i = 0; i < starCount; i++) {
-            starPositions[i*3] = (Math.random() - 0.5) * 300;
-            starPositions[i*3+1] = (Math.random() - 0.5) * 100;
-            starPositions[i*3+2] = (Math.random() - 0.5) * 100 - 50;
+            starPositions[i*3] = (Math.random() - 0.5) * 200;
+            starPositions[i*3+1] = (Math.random() - 0.5) * 80;
+            starPositions[i*3+2] = (Math.random() - 0.5) * 80 - 40;
         }
-        starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
-        const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xfafad2, size: 0.09 }));
+        starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+        const stars = new THREE.Points(starGeometry, new THREE.PointsMaterial({ color: 0xffffaa, size: 0.08, transparent: true, opacity: 0.6 }));
         scene.add(stars);
         
+        // --- حلقة الرسم والحركة ---
+        let lastTime = performance.now();
         function animate() {
             const now = performance.now();
             let delta = Math.min(0.033, (now - lastTime) / 1000);
             lastTime = now;
             
-            if (windEnabled) {
-                const intensity = 0.058;
-                const speed = 1.7;
-                leafSpheres.forEach((leaf, idx) => {
-                    if (originalLeafPos[idx]) {
-                        leaf.position.x = originalLeafPos[idx].x + Math.sin(time * speed + idx) * intensity * 0.6;
-                        leaf.position.z = originalLeafPos[idx].z + Math.cos(time * speed*0.9 + idx) * intensity * 0.55;
-                    }
-                });
-                branchMeshes.forEach((branch, idx) => {
-                    if (originalBranchPos[idx]) {
-                        branch.position.x = originalBranchPos[idx].x + Math.sin(time * 2.1 + idx) * 0.01;
-                        branch.position.z = originalBranchPos[idx].z + Math.cos(time * 1.9 + idx) * 0.01;
-                    }
-                });
-                trunk.position.x = originalTrunkPos.x + Math.sin(time * 1.3) * 0.006;
-                trunk.position.z = originalTrunkPos.z + Math.cos(time * 1.4) * 0.006;
-                time += 0.016;
-            } else {
-                leafSpheres.forEach((leaf, idx) => originalLeafPos[idx] && leaf.position.lerp(originalLeafPos[idx], 0.1));
-                branchMeshes.forEach((branch, idx) => originalBranchPos[idx] && branch.position.lerp(originalBranchPos[idx], 0.1));
-                trunk.position.lerp(originalTrunkPos, 0.1);
-            }
+            updateFoxes(delta);
             
-            animateFoxes(delta);
-            stars.rotation.y += 0.0003;
+            // دوران بطيء للنجوم
+            stars.rotation.y += 0.0005;
+            stars.rotation.x += 0.0003;
+            
+            // تحديث الكاميرا
             controls.update();
+            
             renderer.render(scene, camera);
-            labelRenderer.render(scene, camera);
             requestAnimationFrame(animate);
         }
         
         animate();
-        window.addEventListener('resize', () => {
+        
+        // استجابة لتغيير حجم النافذة
+        window.addEventListener('resize', onWindowResize, false);
+        function onWindowResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
-            labelRenderer.setSize(window.innerWidth, window.innerHeight);
-        });
+        }
+        
+        console.log('منظر طبيعي مع شجرتين وثعالب تركض بحرية!');
     </script>
 </body>
 </html>
